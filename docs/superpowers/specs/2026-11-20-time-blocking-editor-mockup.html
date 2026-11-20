@@ -1,0 +1,138 @@
+<h2>Time blocking, redesigned</h2>
+<p class="subtitle">The week stays a list. The day gets a time rail so gaps are visible. Retiming happens in place, with 15-minute steps — no drag precision, no JSON. Tap the card if this is the direction to build.</p>
+
+<div class="cards">
+<div class="card" data-choice="redesign" onclick="toggleSelect(this)">
+<div class="card-image">
+<div style="display:flex;gap:8px;align-items:stretch;justify-content:center;flex-wrap:wrap;font-family:system-ui,-apple-system,sans-serif">
+
+  <!-- WEEK -->
+  <div style="width:202px;flex:none;background:#0B0C0E;border:1px solid #242A30;border-radius:16px;padding:13px 12px;color:#C7CCD2">
+    <div style="font-size:15px;font-weight:600;color:#F2F3F5;line-height:1.2">Your week</div>
+    <div style="font-size:10px;color:#7B838D;margin:2px 0 14px">16 – 22 November</div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px">
+      <div><div style="font-size:11px;font-weight:600;color:#F2F3F5">Monday</div><div style="font-size:9px;color:#7B838D">12 blocks · 15h 45m</div></div>
+      <div style="width:34px;height:3px;background:#2C333A;border-radius:2px"><div style="width:82%;height:3px;background:#5C6570;border-radius:2px"></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px">
+      <div><div style="font-size:11px;font-weight:600;color:#F2F3F5">Tuesday</div><div style="font-size:9px;color:#7B838D">12 blocks · 15h 45m</div></div>
+      <div style="width:34px;height:3px;background:#2C333A;border-radius:2px"><div style="width:82%;height:3px;background:#5C6570;border-radius:2px"></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#15181B;border-radius:8px;padding:8px 8px;margin:3px -2px">
+      <div><div style="font-size:11px;font-weight:600;color:#F2B84B">Friday · today</div><div style="font-size:9px;color:#7B838D">12 blocks · 15h 45m</div></div>
+      <div style="width:34px;height:3px;background:#2C333A;border-radius:2px"><div style="width:82%;height:3px;background:#F2B84B;border-radius:2px"></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px">
+      <div><div style="font-size:11px;font-weight:600;color:#F2F3F5">Saturday</div><div style="font-size:9px;color:#7B838D">7 blocks · 9h 30m</div></div>
+      <div style="width:34px;height:3px;background:#2C333A;border-radius:2px"><div style="width:50%;height:3px;background:#5C6570;border-radius:2px"></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 4px">
+      <div><div style="font-size:11px;font-weight:600;color:#F2F3F5">Sunday</div><div style="font-size:9px;color:#7B838D">7 blocks · 10h</div></div>
+      <div style="width:34px;height:3px;background:#2C333A;border-radius:2px"><div style="width:54%;height:3px;background:#5C6570;border-radius:2px"></div></div>
+    </div>
+    <div style="margin-top:14px;border-top:1px solid #242A30;padding-top:8px;font-size:9px;color:#7B838D">Tap a day to edit its blocks</div>
+  </div>
+
+  <div style="display:flex;align-items:center;color:#5C6570;font-size:16px">›</div>
+
+  <!-- DAY -->
+  <div style="width:202px;flex:none;background:#0B0C0E;border:1px solid #242A30;border-radius:16px;padding:13px 12px;color:#C7CCD2;position:relative;min-height:330px">
+    <div style="font-size:15px;font-weight:600;color:#F2F3F5">‹ &nbsp;Friday</div>
+    <div style="font-size:9px;color:#7B838D;margin:2px 0 12px">12 blocks · 15h 45m planned</div>
+
+    <div style="background:#101315;border-radius:8px;padding:8px 8px 6px;margin-bottom:12px">
+      <div style="display:flex;gap:2px;height:16px">
+        <div style="width:9%;background:#F2B84B;border-radius:2px 0 0 2px"></div>
+        <div style="width:12%;background:#5C6570"></div>
+        <div style="width:7%;background:#3A424A"></div>
+        <div style="width:32%;background:#F2B84B"></div>
+        <div style="width:4%;background:#101315"></div>
+        <div style="width:9%;background:#5C6570"></div>
+        <div style="width:11%;background:#5C6570"></div>
+        <div style="width:12%;background:#5C6570"></div>
+        <div style="width:6%;background:#3A424A"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:#7B838D;margin-top:4px"><span>06</span><span>12</span><span>18</span><span>23</span></div>
+    </div>
+
+    <div style="border-bottom:1px solid #242A30;padding:7px 2px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:9px;color:#F2B84B;font-variant-numeric:tabular-nums;width:64px">06:30</span>
+      <span style="font-size:10px;color:#C7CCD2;flex:1">Wake + shower</span>
+      <span style="font-size:8px;color:#F2B84B;border:1px solid #6A5327;border-radius:8px;padding:1px 4px">anchor</span>
+    </div>
+    <div style="border-bottom:1px solid #242A30;padding:7px 2px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:9px;color:#98A0A9;font-variant-numeric:tabular-nums;width:64px">07:00</span>
+      <span style="font-size:10px;color:#F2F3F5;flex:1">French</span>
+      <span style="font-size:8px;color:#98A0A9;border:1px solid #3A424A;border-radius:8px;padding:1px 4px">firm</span>
+    </div>
+    <div style="border-bottom:1px solid #242A30;padding:7px 2px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:9px;color:#98A0A9;font-variant-numeric:tabular-nums;width:64px">08:00</span>
+      <span style="font-size:10px;color:#F2F3F5;flex:1">School</span>
+      <span style="font-size:8px;color:#F2B84B;border:1px solid #6A5327;border-radius:8px;padding:1px 4px">anchor</span>
+    </div>
+    <div style="border-bottom:1px solid #242A30;padding:7px 2px;display:flex;gap:8px;align-items:center;background:#15181B;margin:0 -4px;padding-left:6px;padding-right:6px;border-radius:4px">
+      <span style="font-size:9px;color:#F2B84B;font-variant-numeric:tabular-nums;width:64px">16:15</span>
+      <span style="font-size:10px;color:#F2F3F5;flex:1">Hano development</span>
+      <span style="font-size:8px;color:#98A0A9;border:1px solid #3A424A;border-radius:8px;padding:1px 4px">firm</span>
+    </div>
+    <div style="padding:7px 2px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:9px;color:#98A0A9;font-variant-numeric:tabular-nums;width:64px">18:00</span>
+      <span style="font-size:10px;color:#C7CCD2;flex:1">Revision</span>
+      <span style="font-size:8px;color:#98A0A9;border:1px solid #3A424A;border-radius:8px;padding:1px 4px">firm</span>
+    </div>
+    <div style="position:absolute;right:12px;bottom:12px;width:34px;height:34px;border-radius:17px;background:#F2B84B;color:#0B0C0E;font-size:20px;font-weight:500;text-align:center;line-height:34px">+</div>
+  </div>
+
+  <div style="display:flex;align-items:center;color:#5C6570;font-size:16px">›</div>
+
+  <!-- EDIT SHEET -->
+  <div style="width:202px;flex:none;background:#15181B;border:1px solid #2C333A;border-radius:16px;padding:13px 12px 12px;color:#C7CCD2;min-height:330px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:13px;font-weight:600;color:#F2F3F5">Edit block</div>
+      <div style="font-size:12px;color:#7B838D">×</div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:#F2F3F5;border-bottom:1px solid #3A424A;padding-bottom:6px">Hano development</div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:10px">
+      <span style="color:#7B838D">Start</span>
+      <span style="display:flex;gap:5px;align-items:center"><span style="color:#7B838D">−</span><span style="color:#F2F3F5;font-variant-numeric:tabular-nums">16:15</span><span style="color:#F2B84B">+</span></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:10px">
+      <span style="color:#7B838D">End</span>
+      <span style="display:flex;gap:5px;align-items:center"><span style="color:#7B838D">−</span><span style="color:#F2F3F5;font-variant-numeric:tabular-nums">18:00</span><span style="color:#F2B84B">+</span></span>
+    </div>
+    <div style="font-size:8px;color:#7B838D;margin-top:4px;text-align:right">steps of 15 min</div>
+
+    <div style="font-size:9px;color:#7B838D;margin-top:12px">Priority</div>
+    <div style="display:flex;gap:4px;margin-top:5px">
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;background:#3A2E14;color:#F2B84B">anchor</span>
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;border:1px solid #3A424A;color:#98A0A9">firm</span>
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;border:1px solid #3A424A;color:#98A0A9">flex</span>
+    </div>
+    <div style="font-size:9px;color:#7B838D;margin-top:12px">Alerts</div>
+    <div style="display:flex;gap:4px;margin-top:5px">
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;border:1px solid #3A424A;color:#98A0A9">silent</span>
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;background:#2A3037;color:#F2F3F5">nudge</span>
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;border:1px solid #3A424A;color:#98A0A9">strict</span>
+    </div>
+    <div style="font-size:9px;color:#7B838D;margin-top:12px">Category</div>
+    <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;background:#2A3037;color:#F2F3F5">Hano</span>
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;border:1px solid #3A424A;color:#98A0A9">School</span>
+      <span style="font-size:9px;padding:4px 6px;border-radius:8px;border:1px solid #3A424A;color:#98A0A9">Trading</span>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:18px">
+      <span style="font-size:10px;text-align:center;padding:8px 0;flex:1;border-radius:8px;border:1px solid #3A424A;color:#C7CCD2">Delete</span>
+      <span style="font-size:10px;text-align:center;padding:8px 0;flex:1;border-radius:8px;background:#F2B84B;color:#0B0C0E;font-weight:600">Save</span>
+    </div>
+  </div>
+
+</div>
+</div>
+<div class="card-body">
+  <h3>Week → day → edit sheet</h3>
+  <p>Real routine data, Material-style controls, one accent used only for today, anchors and the primary action. The day rail is the one distinctive element: it makes gaps and overload visible at a glance.</p>
+</div>
+</div>
+</div>
