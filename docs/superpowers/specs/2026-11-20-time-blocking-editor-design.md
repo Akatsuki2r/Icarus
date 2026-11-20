@@ -1,5 +1,7 @@
 # Time-blocking editor — design
 
+Status: **superseded in part by `2026-11-20-control-layer-sprint-design.md`** (overlay permission path and signal source changed). Retained as the detailed visual reference for the editor.
+
 Status: **design locked by the user on 2026-11-20**. Mockup: `2026-11-20-time-blocking-editor-mockup.html` (approved visual reference).
 This is slice 1 of 4. Slices 2–4 (notification redesign + custom sounds, state-based themes, launch splash) are explicitly out of scope here.
 
