@@ -1,6 +1,6 @@
 # Control layer sprint — design
 
-Status: **designs locked by the user on 2026-11-20** (dock, overlay UX, app classification). This document is the sprint-wide design authority. It supersedes `2026-11-20-time-blocking-editor-design.md` wherever that document assumes full-screen intents or touch counting; that spec remains the detailed visual reference for the block editor.
+Status: **designs locked by the user on 2026-11-20** (dock, overlay UX, app classification, and the three added slices: themes, notifications/sounds, splash). This document is the sprint-wide design authority. It supersedes `2026-11-20-time-blocking-editor-design.md` wherever that document assumes full-screen intents or touch counting; that spec remains the detailed visual reference for the block editor.
 
 Visual references (approved in the browser companion): dock shell, both overlay variants, week → day → edit sheet. Keep the established Icarus identity: dark surfaces, amber used only for current state/anchors/primary action, mono numerals, hairline dividers, no new visual world.
 
@@ -14,8 +14,11 @@ The user's six-step order is the sprint. Each step is its own implementation tas
 4. Intervention state machine — policy evaluation, dedupe, cooldown, call suppression, dismissal.
 5. Full-screen overlay — visual intervention, actions, fallback, accessibility-conscious dismissal.
 6. Integration testing — complete flow on the Redmi, including reboots, denied permissions, background restrictions.
+7. State themes — three surface palettes that follow the day's state, with a manual override.
+8. Notification redesign + custom sounds — three alert channels with locally generated chimes and per-sound settings.
+9. Splash — platform cold-start treatment with no artificial loading delay.
 
-Deferred beyond this sprint: visual themes, notification redesign/custom sounds, launch splash. App restriction / screen-time enforcement is the *next* evolution, not this sprint.
+App restriction / screen-time enforcement is the *next* evolution beyond this sprint, not part of it.
 
 ## 1. Navigation dock
 
@@ -62,9 +65,21 @@ Two visual variants (approved): **late** — "Started one minute ago", Snooze 5 
 
 Automated: unit tests for classification/policy/dedupe/thresholds, routine edits, and history derivation; 0 lint errors; debug build succeeds. No emulator survives in this environment, so device verification is an explicit handoff: install on the Redmi and check reboots, permission denial/revocation, MIUI Autostart and battery settings, call suppression, overlay dismissal, dock insets, and font scale 1.3. Nothing is claimed as visually verified from code alone.
 
+## 7. State themes
+
+Three **surface** palettes layered on the existing identity — not a new visual world: **Focus** (current warm dark), **Recovery** (cooler neutral surfaces), **Wind down** (deepened, desaturated). Amber stays reserved for today, anchors, and the primary action in every theme; only surfaces and secondary text shift. Switching is automatic from `Moment` + accepted recovery plan + overlay state, with a manual override in Settings (Auto / Focus / Recovery / Wind down). Implemented through the shared `IcarusTheme` token provider; no Activity recreation, no Dynamic Color extraction, no per-screen theme XML.
+
+## 8. Notification redesign + custom sounds
+
+Split alerts into three channels — prepare / start / overdue — each with a short chime generated locally into `res/raw` (soft two-note, single clear note, firmer two-note; all under 1s, no downloaded assets). Settings offers each chime plus "System default"; changing a selection updates that channel's sound through `NotificationManager.createNotificationChannel()` with the same id. Migrate the legacy single alert channel so nothing double-fires. The live notification keeps the countdown chronometer and drops the redundant progress value; copy is tightened and `setColor()` uses the active theme token. Heads-up alerts carry at most two actions.
+
+## 9. Splash
+
+No fake loading, no new Activity, no AndroidX splash library. Android 12+ uses the platform splash via `windowSplashScreenBackground` / `windowSplashScreenAnimatedIcon` in `values-v31/styles.xml`; older versions use a static centered-launch drawable as the launcher activity's window background. Cold start only — zero added wait.
+
 ## Cross-cutting constraints
 
 - Native Android Views, no AndroidX, minSdk 26 / targetSdk 36, edge-to-edge insets everywhere including the IME.
-- Shared palette/type/ripple helpers so the four destinations and the overlay do not drift.
+- Shared palette/type/ripple helpers so the four destinations and the overlay do not drift; the token provider also resolves the active state theme.
 - `Actions` remains the only writer of day state; this sprint adds a separate policy/overlay state layer but never mutates routine or day state behind its back.
 - No new permissions beyond Usage Access and Draw over other apps; no background screen capture, no accessibility service unless a later, separately-approved step proves one is genuinely required.
