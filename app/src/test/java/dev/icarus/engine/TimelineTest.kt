@@ -99,6 +99,28 @@ class TimelineTest {
     }
 
     @Test
+    fun `undoing a completion restores the block without skipping it`() {
+        val state = DayState.empty(date)
+            .withComplete("revision")
+            .withUncomplete("revision")
+        assertTrue(timeline(state).completed.isEmpty())
+        assertTrue(timeline(state).skipped.isEmpty())
+        val moment = timeline(state).moment(LocalTime.parse("18:30"))
+        assertEquals("revision", (moment as Moment.Active).block.id)
+    }
+
+    @Test
+    fun `a block is never both done and skipped`() {
+        val completed = DayState.empty(date).withSkip("revision").withComplete("revision")
+        assertTrue("revision" in completed.completed)
+        assertFalse("revision" in completed.skipped)
+
+        val skipped = DayState.empty(date).withComplete("revision").withSkip("revision")
+        assertTrue("revision" in skipped.skipped)
+        assertFalse("revision" in skipped.completed)
+    }
+
+    @Test
     fun `routine validation catches overlaps`() {
         val broken = Routine(
             mapOf(

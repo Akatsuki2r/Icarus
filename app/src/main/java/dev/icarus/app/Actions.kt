@@ -28,6 +28,8 @@ object Actions {
 
     fun complete(context: Context, blockId: String) = update(context) { it.withComplete(blockId) }
 
+    fun uncomplete(context: Context, blockId: String) = update(context) { it.withUncomplete(blockId) }
+
     fun onTrack(context: Context) = update(context) { it.clearPlan() }
 
     /**

@@ -19,8 +19,10 @@ data class DayState(
     /** Accepted recovery plan for this date. null means "still on the template". */
     val plan: List<Block>? = null,
 ) {
-    fun withSkip(id: String) = copy(skipped = skipped + id)
-    fun withComplete(id: String) = copy(completed = completed + id)
+    /** A block is either done or skipped, never both: the two states contradict. */
+    fun withSkip(id: String) = copy(skipped = skipped + id, completed = completed - id)
+    fun withComplete(id: String) = copy(completed = completed + id, skipped = skipped - id)
+    fun withUncomplete(id: String) = copy(completed = completed - id)
     fun withPlan(blocks: List<Block>?) = copy(plan = blocks)
     fun clearPlan() = copy(plan = null)
 

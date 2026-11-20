@@ -5,9 +5,11 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,8 +18,11 @@ import android.os.Looper
 import android.provider.Settings
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.animation.PathInterpolator
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -26,7 +31,9 @@ import android.widget.Toast
 import dev.icarus.app.data.RoutineStore
 import dev.icarus.engine.Block
 import dev.icarus.engine.Moment
+import dev.icarus.engine.Priority
 import dev.icarus.engine.Recovery
+import dev.icarus.engine.Routine
 import dev.icarus.engine.Timeline
 import java.time.LocalDate
 import java.time.LocalTime
@@ -47,8 +54,10 @@ class MainActivity : Activity() {
     private val hm = DateTimeFormatter.ofPattern("HH:mm")
 
     private lateinit var routineStore: RoutineStore
+    private var routine: Routine = Routine.EMPTY
     private var timeline: Timeline = Timeline(LocalDate.now(), emptyList())
 
+    private lateinit var card: LinearLayout
     private lateinit var clock: TextView
     private lateinit var dateLine: TextView
     private lateinit var cardLabel: TextView
@@ -57,15 +66,21 @@ class MainActivity : Activity() {
     private lateinit var cardBar: ProgressBar
     private lateinit var cardRemaining: TextView
     private lateinit var cardProgressText: TextView
-    private lateinit var nextLabel: TextView
+    private lateinit var nextStrip: LinearLayout
     private lateinit var nextText: TextView
     private lateinit var comingList: LinearLayout
     private lateinit var dayList: LinearLayout
+    private lateinit var todayCount: TextView
+    private lateinit var warningRow: LinearLayout
+    private lateinit var warningText: TextView
     private lateinit var status: TextView
+    private lateinit var resetButton: TextView
     private lateinit var skipButton: TextView
     private lateinit var doneButton: TextView
+    private lateinit var recoverButton: TextView
 
     private var listSignature: String? = null
+    private var cardKey: String? = null
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -77,13 +92,27 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         routineStore = RoutineStore(this)
-        window.statusBarColor = Colors.BG
-        window.navigationBarColor = Colors.BG
+        routine = routineStore.load()
+
+        // targetSdk 36 means the system already draws us edge to edge; we pad
+        // ourselves so the clock never sits under the status bar.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+        }
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+
         setContentView(buildUi())
     }
 
     override fun onResume() {
         super.onResume()
+        routine = routineStore.load()
         TimekeeperService.start(this)
         handler.removeCallbacks(ticker)
         handler.post(ticker)
@@ -99,19 +128,18 @@ class MainActivity : Activity() {
     private fun recover() {
         val plan = Recovery.plan(LocalTime.now(), timeline.activeBlocks(), timeline.completed)
         if (plan.isEmpty) {
-            toast("Nothing to recover - you are on schedule.")
+            toast("Nothing to recover — you're on schedule.")
             return
         }
-        val message = buildString {
-            plan.summary.forEach { appendLine("• $it") }
-        }.trim()
+        val message = plan.summary.joinToString("\n") { "• $it" }
 
         AlertDialog.Builder(this)
             .setTitle("Recover the rest of today")
-            .setMessage(message.ifBlank { "No changes needed." })
+            .setMessage(message)
             .setPositiveButton("Apply") { _, _ ->
-                val applied = Actions.recover(this)
-                toast("Recovered: ${applied.changes.count { it.type != Recovery.ChangeType.KEPT }} change(s)")
+                Actions.recover(this)
+                tapFeedback()
+                toast("Recovered: ${plan.summary.size} change(s)")
                 reload()
             }
             .setNegativeButton("Cancel", null)
@@ -119,27 +147,34 @@ class MainActivity : Activity() {
     }
 
     private fun skipCurrent() {
-        val now = LocalTime.now()
-        val block = timeline.currentBlock(now) ?: run {
+        val block = timeline.currentBlock(LocalTime.now()) ?: run {
             toast("Nothing is running.")
             return
         }
         Actions.skip(this, block.id)
+        tapFeedback()
         toast("Skipped ${block.title}")
         reload()
     }
 
     private fun markDone() {
-        val now = LocalTime.now()
-        val block = timeline.currentBlock(now) ?: run {
+        val block = timeline.currentBlock(LocalTime.now()) ?: run {
             toast("Nothing is running.")
             return
         }
         if (block.id in timeline.completed) {
-            Actions.skip(this, block.id)
+            Actions.uncomplete(this, block.id)
         } else {
             Actions.complete(this, block.id)
         }
+        tapFeedback()
+        reload()
+    }
+
+    private fun resetPlan() {
+        Actions.onTrack(this)
+        tapFeedback()
+        toast("Back on the template.")
         reload()
     }
 
@@ -156,7 +191,6 @@ class MainActivity : Activity() {
         clock.text = now.format(clockFormat)
 
         val date = LocalDate.now()
-        val routine = routineStore.load()
         val state = Actions.state(this, date)
         timeline = Timeline.of(date.dayOfWeek, date, routine, state)
 
@@ -170,9 +204,11 @@ class MainActivity : Activity() {
             append(date.get(WeekFields.ISO.weekOfWeekBasedYear()))
         }
 
+        var key: String
         when (val moment = timeline.moment(now)) {
             is Moment.Active -> {
                 val block = moment.block
+                key = "a:${block.id}"
                 cardLabel.text = "NOW"
                 cardTitle.text = block.title
                 cardRange.text = "${block.start.format(hm)} – ${block.end.format(hm)}  ·  ${block.category.label}"
@@ -185,6 +221,7 @@ class MainActivity : Activity() {
 
             is Moment.Waiting -> {
                 val next = moment.next
+                key = "w:${next?.id}"
                 cardLabel.text = "NEXT"
                 cardTitle.text = next?.title ?: "Nothing scheduled"
                 cardRange.text = if (next != null) {
@@ -203,9 +240,11 @@ class MainActivity : Activity() {
             }
 
             Moment.Finished -> {
+                key = "f"
                 cardLabel.text = "DONE"
                 cardTitle.text = "Day finished"
-                cardRange.text = "${timeline.activeBlocks().count { it.id in timeline.completed }} of ${timeline.activeBlocks().size} blocks done"
+                cardRange.text = "${timeline.activeBlocks().count { it.id in timeline.completed }} " +
+                    "of ${timeline.activeBlocks().size} blocks done"
                 cardBar.visibility = View.INVISIBLE
                 cardProgressText.text = ""
                 cardRemaining.text = "go to sleep"
@@ -213,27 +252,46 @@ class MainActivity : Activity() {
             }
         }
 
-        val next = timeline.nextAfter(now)
-        if (next != null) {
-            nextLabel.text = "NEXT TRANSITION"
-            nextText.text = "${next.start.format(hm)}  ${next.title}  ·  in ${short(java.time.Duration.between(now, next.start).toMinutes())}"
+        if (key != cardKey) {
+            val first = cardKey == null
+            cardKey = key
+            if (!first) animateCardIn()
+        }
+
+        // The strip only exists to show the transition while a block is running;
+        // when idle the card already says what is next.
+        if (timeline.moment(now) is Moment.Active) {
+            nextStrip.visibility = View.VISIBLE
+            val next = timeline.nextAfter(now)
+            nextText.text = if (next != null) {
+                "${next.start.format(hm)}  ${next.title}  ·  in " +
+                    short(java.time.Duration.between(now, next.start).toMinutes())
+            } else {
+                "nothing left today"
+            }
         } else {
-            nextLabel.text = "NEXT TRANSITION"
-            nextText.text = "nothing left today"
+            nextStrip.visibility = View.GONE
         }
 
         val active = timeline.currentBlock(now)
         skipButton.isEnabled = active != null
-        skipButton.alpha = if (active != null) 1f else 0.4f
+        skipButton.alpha = if (active != null) 1f else 0.35f
         doneButton.isEnabled = active != null
-        doneButton.alpha = if (active != null) 1f else 0.4f
-        doneButton.text = if (active != null && active.id in timeline.completed) "Undo done" else "Mark done"
+        doneButton.alpha = if (active != null) 1f else 0.35f
+        doneButton.text = if (active != null && active.id in timeline.completed) "Undo" else "Mark done"
+        resetButton.text = if (state.plan != null) "Undo recovery" else "Reset"
+        resetButton.isEnabled = state.plan != null
+        resetButton.alpha = if (state.plan != null) 1f else 0.35f
+        recoverButton.alpha = if (timeline.activeBlocks().isEmpty()) 0.5f else 1f
+
+        todayCount.text = "${timeline.activeBlocks().count { it.id in timeline.completed }} / " +
+            "${timeline.activeBlocks().size}"
 
         updateStatus()
 
-        val signature = timeline.blocks.joinToString("|") {
-            "${it.id}@${it.start}-${it.end}#${it.id in timeline.completed}#${it.id in timeline.skipped}"
-        } + "c${timeline.completed.size}s${timeline.skipped.size}"
+        val signature = timeline.blocks.joinToString("|") { block ->
+            "${block.id}@${block.start}-${block.end}#${block.id in timeline.completed}#${block.id in timeline.skipped}"
+        }
 
         if (signature != listSignature) {
             listSignature = signature
@@ -246,17 +304,20 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
-            missing += "notifications off"
+            missing += "notifications are off"
         }
-        if (!Alarms.canScheduleExact(this)) missing += "exact alarms off"
+        if (!Alarms.canScheduleExact(this)) missing += "exact alarms are off"
 
-        status.text = if (missing.isEmpty()) {
-            "timekeeper running · alerts: prepare, start, overdue"
+        if (missing.isEmpty()) {
+            warningRow.visibility = View.GONE
+            status.text = "timekeeper running · alerts: prepare, start, overdue"
+            status.setTextColor(Colors.TEXT_DIM)
         } else {
-            "attention: ${missing.joinToString(", ")} — tap to fix"
+            warningRow.visibility = View.VISIBLE
+            warningText.text = missing.joinToString(" · ")
+            status.text = "the timekeeper cannot reach you until this is fixed"
+            status.setTextColor(Colors.MUTED)
         }
-        status.setTextColor(if (missing.isEmpty()) Colors.DIM else Colors.WARN)
-        status.setOnClickListener { if (missing.isEmpty()) batterySettings() else fixPermissions() }
     }
 
     private fun rebuildLists(now: LocalTime) {
@@ -269,194 +330,268 @@ class MainActivity : Activity() {
         }
 
         dayList.removeAllViews()
-        timeline.activeBlocks().forEach { dayList.addView(row(it, now)) }
-        if (timeline.blocks.size > timeline.activeBlocks().size) {
-            dayList.addView(note("${timeline.blocks.size - timeline.activeBlocks().size} block(s) skipped today"))
+        if (timeline.blocks.isEmpty()) {
+            dayList.addView(note("no blocks scheduled — tap Edit routine"))
+            return
         }
+        timeline.blocks.forEach { dayList.addView(row(it, now)) }
     }
 
     // ------------------------------------------------------------------- view
 
     private fun buildUi(): View {
-        val root = LinearLayout(this).apply {
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(28), dp(20), dp(28))
-            setBackgroundColor(Colors.BG)
+            setPadding(dp(20), 0, dp(20), 0)
         }
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, 0)
         }
         header.addView(
             label("ICARUS", Colors.ACCENT).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                letterSpacing = 0.28f
-                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                letterSpacing = 0.3f
+                typeface = monoBold
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         clock = label("--:--:--", Colors.DIM).apply {
-            typeface = Typeface.MONOSPACE
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            typeface = mono
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         }
         header.addView(clock)
-        root.addView(header)
+        content.addView(header)
 
-        dateLine = label("", Colors.DIM).apply {
+        dateLine = label("", Colors.MUTED).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0, dp(4), 0, dp(18))
+            setPadding(0, dp(6), 0, dp(22))
         }
-        root.addView(dateLine)
+        content.addView(dateLine)
 
-        val card = LinearLayout(this).apply {
+        card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = rounded(Colors.CARD, 16)
+            background = rounded(Colors.CARD, 18, Colors.HAIRLINE)
             setPadding(dp(18), dp(16), dp(18), dp(18))
         }
 
         val cardTop = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         cardLabel = label("NOW", Colors.ACCENT).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            letterSpacing = 0.2f
-            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            letterSpacing = 0.22f
+            typeface = monoBold
         }
-        cardProgressText = label("", Colors.DIM).apply {
+        cardProgressText = label("", Colors.MUTED).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             gravity = Gravity.END
+            typeface = mono
         }
         cardTop.addView(cardLabel, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         cardTop.addView(cardProgressText)
         card.addView(cardTop)
 
         cardTitle = label("", Colors.TEXT).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
-            setPadding(0, dp(8), 0, dp(2))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 25f)
+            typeface = sansMedium
+            setLineSpacing(0f, 1.05f)
+            setPadding(0, dp(10), 0, dp(4))
         }
         card.addView(cardTitle)
 
         cardRange = label("", Colors.DIM).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            typeface = Typeface.MONOSPACE
-            setPadding(0, 0, 0, dp(14))
+            typeface = mono
+            setPadding(0, 0, 0, dp(16))
         }
         card.addView(cardRange)
 
         cardBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
-            progressTintList = android.content.res.ColorStateList.valueOf(Colors.ACCENT)
-            progressBackgroundTintList = android.content.res.ColorStateList.valueOf(Colors.TRACK)
-            minimumHeight = dp(6)
+            progressTintList = ColorStateList.valueOf(Colors.ACCENT)
+            progressBackgroundTintList = ColorStateList.valueOf(Colors.TRACK)
+            minimumHeight = dp(4)
         }
-        card.addView(cardBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(6)))
+        card.addView(cardBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)))
 
         cardRemaining = label("", Colors.ACCENT).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setPadding(0, dp(12), 0, 0)
-            typeface = Typeface.MONOSPACE
+            typeface = mono
+            setPadding(0, dp(14), 0, 0)
         }
         card.addView(cardRemaining)
-        root.addView(card)
+        content.addView(card)
 
-        val nextStrip = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        nextStrip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             background = rounded(Colors.CARD_ALT, 12)
             setPadding(dp(14), dp(12), dp(14), dp(12))
-            layoutParams = LinearLayout.LayoutParams(
+        }
+        nextStrip.addView(
+            label("NEXT", Colors.MUTED).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                letterSpacing = 0.2f
+                typeface = monoBold
+                setPadding(0, 0, dp(12), 0)
+            },
+        )
+        nextText = label("", Colors.TEXT_DIM).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = mono
+        }
+        nextStrip.addView(nextText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        content.addView(
+            nextStrip,
+            LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(10) }
-        }
-        nextLabel = label("NEXT TRANSITION", Colors.DIM).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-            letterSpacing = 0.18f
-        }
-        nextText = label("", Colors.TEXT).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            typeface = Typeface.MONOSPACE
-            setPadding(0, dp(4), 0, 0)
-        }
-        nextStrip.addView(nextLabel)
-        nextStrip.addView(nextText)
-        root.addView(nextStrip)
+            ).apply { topMargin = dp(10) },
+        )
 
         val row1 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(14), 0, 0)
+            setPadding(0, dp(18), 0, 0)
         }
-        row1.addView(
-            button("Recover day", filled = true) { recover() },
-            LinearLayout.LayoutParams(0, dp(44), 1.6f),
-        )
+        recoverButton = button("Recover day", filled = true) { recover() }
+        row1.addView(recoverButton, LinearLayout.LayoutParams(0, dp(48), 1.75f))
         row1.addView(spacer(dp(8)))
-        row1.addView(
-            button("Reset") {
-                Actions.onTrack(this)
-                toast("Back on the template.")
-                reload()
-            },
-            LinearLayout.LayoutParams(0, dp(44), 1f),
-        )
-        root.addView(row1)
+        resetButton = button("Reset") { resetPlan() }
+        row1.addView(resetButton, LinearLayout.LayoutParams(0, dp(48), 1f))
+        content.addView(row1)
 
         val row2 = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(8), 0, dp(22))
+            setPadding(0, dp(8), 0, dp(6))
         }
         skipButton = button("Skip now") { skipCurrent() }
         doneButton = button("Mark done") { markDone() }
-        row2.addView(skipButton, LinearLayout.LayoutParams(0, dp(40), 1f))
+        row2.addView(skipButton, LinearLayout.LayoutParams(0, dp(44), 1f))
         row2.addView(spacer(dp(8)))
-        row2.addView(doneButton, LinearLayout.LayoutParams(0, dp(40), 1f))
-        root.addView(row2)
+        row2.addView(doneButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        content.addView(row2)
 
-        root.addView(section("COMING UP"))
-        comingList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(comingList)
-
-        root.addView(section("TODAY"))
-        dayList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(dayList)
-
-        status = label("", Colors.DIM).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            setPadding(0, dp(24), 0, dp(6))
+        val todayHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(24), 0, dp(4))
         }
-        root.addView(status)
+        todayHeader.addView(
+            label("COMING UP", Colors.MUTED).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                letterSpacing = 0.2f
+                typeface = monoBold
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        content.addView(todayHeader)
+
+        comingList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(comingList)
+
+        val dayHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(26), 0, dp(4))
+        }
+        dayHeader.addView(
+            label("TODAY", Colors.MUTED).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                letterSpacing = 0.2f
+                typeface = monoBold
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        todayCount = label("", Colors.MUTED).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            typeface = mono
+        }
+        dayHeader.addView(todayCount)
+        content.addView(dayHeader)
+
+        dayList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(dayList)
+
+        warningRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded(Colors.WARN_SOFT, 12)
+            setPadding(dp(14), dp(10), dp(10), dp(10))
+            visibility = View.GONE
+        }
+        warningText = label("", Colors.WARN).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        }
+        warningRow.addView(warningText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        warningRow.addView(
+            button("Fix", filled = false) { fixPermissions() }.apply {
+                setTextColor(Colors.WARN)
+                background = ripple(Colors.WARN_SOFT, 10, ColorStateList.valueOf(0x33FFFFFF))
+            },
+            LinearLayout.LayoutParams(dp(72), dp(44)),
+        )
+        content.addView(
+            warningRow,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(22) },
+        )
+
+        status = label("", Colors.TEXT_DIM).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            setPadding(0, dp(14), 0, dp(4))
+        }
+        content.addView(status)
 
         val footer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(6), 0, 0)
+            setPadding(0, dp(8), 0, dp(8))
         }
         footer.addView(
             button("Edit routine") {
                 startActivity(Intent(this@MainActivity, RoutineEditorActivity::class.java))
             },
-            LinearLayout.LayoutParams(0, dp(40), 1f),
+            LinearLayout.LayoutParams(0, dp(44), 1f),
         )
         footer.addView(spacer(dp(8)))
         footer.addView(
             button("Battery") { batterySettings() },
-            LinearLayout.LayoutParams(0, dp(40), 1f),
+            LinearLayout.LayoutParams(0, dp(44), 1f),
         )
-        root.addView(footer)
+        content.addView(footer)
 
         return ScrollView(this).apply {
             setBackgroundColor(Colors.BG)
             isFillViewport = true
-            addView(root)
+            clipToPadding = false
+            addView(content)
+            setOnApplyWindowInsetsListener { view, insets ->
+                val (top, bottom) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                    bars.top to bars.bottom
+                } else {
+                    @Suppress("DEPRECATION")
+                    insets.systemWindowInsetTop to insets.systemWindowInsetBottom
+                }
+                view.setPadding(0, dp(22) + top, 0, dp(20) + bottom)
+                insets
+            }
         }
     }
 
     private fun row(block: Block, now: LocalTime): View {
         val done = block.id in timeline.completed
+        val skipped = block.id in timeline.skipped
         val current = timeline.currentBlock(now)?.id == block.id
-        val past = block.end.isBefore(now) && !done && !current
+        val past = block.end.isBefore(now) && !done && !current && !skipped
 
         val wrap = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(9), 0, dp(9))
+            setPadding(0, dp(10), 0, dp(10))
+            if (skipped) alpha = 0.55f
         }
 
         val marker = View(this).apply {
@@ -464,15 +599,15 @@ class MainActivity : Activity() {
                 when {
                     done -> Colors.GOOD
                     current -> Colors.ACCENT
-                    past -> Colors.MUTED
-                    else -> Colors.TRACK
+                    skipped || past -> Colors.TRACK
+                    else -> Colors.HAIRLINE
                 },
             )
         }
-        wrap.addView(marker, LinearLayout.LayoutParams(dp(3), dp(20)))
+        wrap.addView(marker, LinearLayout.LayoutParams(dp(3), dp(18)))
 
         val time = label(block.start.format(hm), if (current) Colors.ACCENT else Colors.DIM).apply {
-            typeface = Typeface.MONOSPACE
+            typeface = mono
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(dp(12), 0, dp(12), 0)
         }
@@ -481,22 +616,33 @@ class MainActivity : Activity() {
         val title = label(
             (if (done) "✓ " else "") + block.title,
             when {
-                done -> Colors.MUTED
                 current -> Colors.TEXT
-                past -> Colors.MUTED
+                done || skipped -> Colors.MUTED
+                past -> Colors.DIM
                 else -> Colors.TEXT_DIM
             },
         ).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            if (done || past) paintFlags = paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            // Only a skipped block is a cancellation. A past block is just past.
+            if (skipped) paintFlags = paintFlags or android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+            if (block.priority == Priority.ANCHOR) typeface = sansMedium
         }
         wrap.addView(title, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
         val meta = label(
-            if (current) "now" else "${block.duration.toMinutes()}m",
-            if (current) Colors.ACCENT else Colors.MUTED,
+            when {
+                current -> "now"
+                skipped -> "skipped"
+                done -> "done"
+                else -> "${block.duration.toMinutes()}m"
+            },
+            when {
+                current -> Colors.ACCENT
+                done -> Colors.GOOD
+                else -> Colors.MUTED
+            },
         ).apply {
-            typeface = Typeface.MONOSPACE
+            typeface = mono
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
         }
         wrap.addView(meta)
@@ -505,6 +651,23 @@ class MainActivity : Activity() {
     }
 
     // ------------------------------------------------------------------ bits
+
+    private fun animateCardIn() {
+        if (!android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            card.alpha = 1f
+            card.translationY = 0f
+            return
+        }
+        card.animate().cancel()
+        card.alpha = 0f
+        card.translationY = dp(8).toFloat()
+        card.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(220)
+            .setInterpolator(PathInterpolator(0.23f, 1f, 0.32f, 1f))
+            .start()
+    }
 
     private fun fixPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -521,12 +684,14 @@ class MainActivity : Activity() {
     }
 
     private fun batterySettings() {
+        tapFeedback()
         startActivity(
-            Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:$packageName"),
-            ),
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")),
         )
+    }
+
+    private fun tapFeedback() {
+        window.decorView.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
     }
 
     private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
@@ -536,16 +701,9 @@ class MainActivity : Activity() {
         setTextColor(color)
     }
 
-    private fun section(text: String): TextView = label(text, Colors.DIM).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-        letterSpacing = 0.18f
-        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-        setPadding(0, dp(22), 0, dp(6))
-    }
-
     private fun note(text: String): TextView = label(text, Colors.MUTED).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        setPadding(dp(15), dp(8), 0, dp(8))
+        setPadding(dp(15), dp(10), 0, dp(10))
     }
 
     private fun button(text: String, filled: Boolean = false, onClick: () -> Unit): TextView =
@@ -553,11 +711,19 @@ class MainActivity : Activity() {
             this.text = text
             gravity = Gravity.CENTER
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            typeface = if (filled) sansMedium else sans
             isClickable = true
             isFocusable = true
             setTextColor(if (filled) Colors.BG else Colors.TEXT_DIM)
-            background = if (filled) rounded(Colors.ACCENT, 10) else rounded(Colors.CARD, 10, Colors.TRACK)
-            setOnClickListener { onClick() }
+            background = if (filled) {
+                ripple(Colors.ACCENT, 12, ColorStateList.valueOf(0x22000000))
+            } else {
+                ripple(Colors.CARD, 12, ColorStateList.valueOf(0x24FFFFFF), Colors.HAIRLINE)
+            }
+            setOnClickListener {
+                tapFeedback()
+                onClick()
+            }
         }
 
     private fun rounded(fill: Int, radiusDp: Int, stroke: Int? = null): GradientDrawable =
@@ -567,6 +733,9 @@ class MainActivity : Activity() {
             setColor(fill)
             if (stroke != null) setStroke(dp(1), stroke)
         }
+
+    private fun ripple(fill: Int, radiusDp: Int, color: ColorStateList, stroke: Int? = null): RippleDrawable =
+        RippleDrawable(color, rounded(fill, radiusDp, stroke), null)
 
     private fun spacer(width: Int) = View(this).apply {
         layoutParams = LinearLayout.LayoutParams(width, 1)
@@ -584,17 +753,24 @@ class MainActivity : Activity() {
         }
     }
 
+    private val sans: Typeface by lazy { Typeface.create("sans-serif", Typeface.NORMAL) }
+    private val sansMedium: Typeface by lazy { Typeface.create("sans-serif-medium", Typeface.NORMAL) }
+    private val mono: Typeface get() = Typeface.MONOSPACE
+    private val monoBold: Typeface by lazy { Typeface.create(Typeface.MONOSPACE, Typeface.BOLD) }
+
     private object Colors {
         val BG = Color.parseColor("#0B0C0E")
         val CARD = Color.parseColor("#15181B")
         val CARD_ALT = Color.parseColor("#101315")
-        val TRACK = Color.parseColor("#242A2F")
-        val TEXT = Color.parseColor("#EDEEF0")
-        val TEXT_DIM = Color.parseColor("#C3C7CC")
-        val DIM = Color.parseColor("#878D95")
-        val MUTED = Color.parseColor("#5A6068")
+        val HAIRLINE = Color.parseColor("#242A30")
+        val TRACK = Color.parseColor("#2C333A")
+        val TEXT = Color.parseColor("#F2F3F5")
+        val TEXT_DIM = Color.parseColor("#C7CCD2")
+        val DIM = Color.parseColor("#98A0A9")
+        val MUTED = Color.parseColor("#7B838D")
         val ACCENT = Color.parseColor("#F2B84B")
         val GOOD = Color.parseColor("#6FCF8A")
-        val WARN = Color.parseColor("#E08163")
+        val WARN = Color.parseColor("#E58D6F")
+        val WARN_SOFT = Color.parseColor("#1E1614")
     }
 }
