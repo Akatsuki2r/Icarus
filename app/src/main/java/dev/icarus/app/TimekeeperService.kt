@@ -1,0 +1,138 @@
+package dev.icarus.app
+
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
+import dev.icarus.app.data.DayStateStore
+import dev.icarus.engine.Alert
+import dev.icarus.engine.Moment
+import dev.icarus.engine.NotifyPolicy
+import java.time.LocalDate
+import java.time.LocalTime
+
+/**
+ * The timekeeper itself: a low-importance foreground service that keeps the
+ * current block in the shade, fires the three permitted alerts, and re-arms
+ * the next wake-up.
+ *
+ * It is intentionally boring. All the thinking is in the engine.
+ */
+class TimekeeperService : Service() {
+
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var notifier: Notifier
+    private var lastSignature: String? = null
+    private var servingDate: LocalDate = LocalDate.now()
+
+    private val ticker = object : Runnable {
+        override fun run() {
+            tick()
+            handler.postDelayed(this, TICK_MS)
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        notifier = Notifier(this)
+        notifier.ensureChannels()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == Contract.SERVICE_STOP) {
+            handler.removeCallbacks(ticker)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        // Promote to foreground immediately; the OS gives us seconds, not minutes.
+        val timeline = Actions.timeline(this)
+        val now = LocalTime.now()
+        val notification = notifier.live(timeline, timeline.moment(now), now)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(Contract.NOTIFICATION_LIVE, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(Contract.NOTIFICATION_LIVE, notification)
+        }
+
+        handler.removeCallbacks(ticker)
+        handler.post(ticker)
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        handler.removeCallbacks(ticker)
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun tick() {
+        val today = LocalDate.now()
+        if (today != servingDate) {
+            // Midnight rollover: yesterday's alerts and plan are irrelevant.
+            notifier.cancelAllAlerts()
+            lastSignature = null
+            servingDate = today
+        }
+
+        val now = LocalTime.now()
+        val timeline = Actions.timeline(this, today)
+        val moment = timeline.moment(now)
+
+        deliverAlerts(today, now, timeline)
+
+        val signature = signatureOf(moment)
+        if (signature != lastSignature) {
+            notifier.ensureChannels()
+            notifier.live(timeline, moment, now).let {
+                getSystemService(android.app.NotificationManager::class.java)
+                    .notify(Contract.NOTIFICATION_LIVE, it)
+            }
+            lastSignature = signature
+        }
+
+        val wake = Alarms.nextWake(timeline, now)
+        if (wake != null) Alarms.scheduleNext(this, wake)
+    }
+
+    private fun deliverAlerts(date: LocalDate, now: LocalTime, timeline: dev.icarus.engine.Timeline) {
+        val store = DayStateStore(this)
+        val sent = store.sentAlerts(date)
+        val due: List<Alert> = NotifyPolicy.due(now, timeline.activeBlocks(), sent)
+        for (alert in due) {
+            notifier.alert(alert, alert.title)
+            store.markSent(date, alert.key)
+        }
+    }
+
+    private fun signatureOf(moment: Moment): String = when (moment) {
+        is Moment.Active -> "a:${moment.block.id}"
+        is Moment.Waiting -> "w:${moment.next?.id}"
+        Moment.Finished -> "f"
+    }
+
+    companion object {
+        private const val TICK_MS = 20_000L
+
+        fun start(context: Context) {
+            val intent = Intent(context, TimekeeperService::class.java)
+            try {
+                context.startForegroundService(intent)
+            } catch (_: IllegalStateException) {
+                // Background start blocked (some OEM battery managers). The alarm will retry.
+                Alarms.nextWake(Actions.timeline(context))?.let { Alarms.scheduleNext(context, it) }
+            }
+        }
+
+        fun stop(context: Context) {
+            context.startService(
+                Intent(context, TimekeeperService::class.java).setAction(Contract.SERVICE_STOP),
+            )
+        }
+    }
+}
