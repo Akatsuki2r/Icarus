@@ -100,6 +100,7 @@ class TimekeeperService : Service() {
             // Midnight rollover: yesterday's alerts and plan are irrelevant.
             notifier.cancelAllAlerts()
             lastSignature = null
+            interventions.resetDay()
             servingDate = today
         }
 

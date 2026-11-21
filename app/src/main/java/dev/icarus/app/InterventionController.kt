@@ -74,6 +74,7 @@ class InterventionController(
     }
 
     fun onCall(active: Boolean) {
+        if (active == callActive) return
         val instant = clock().second
         callActive = active
         if (active) {
@@ -92,6 +93,15 @@ class InterventionController(
 
     fun clear() {
         pending = null
+    }
+
+    /** Midnight rollover: a new day gets a fresh intervention budget. */
+    fun resetDay() {
+        pending = null
+        graceUntil = null
+        suppressUntil = null
+        callActive = false
+        lateFired.clear()
     }
 
     fun shouldIntervene(now: LocalTime): Boolean = !suppressed(clock().second)

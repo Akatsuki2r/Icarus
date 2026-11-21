@@ -50,7 +50,6 @@ class SettingsView(context: Context) : LinearLayout(context) {
             addView(action("Open usage access settings") {
                 context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
-            return
         }
 
         val canOverlay = android.provider.Settings.canDrawOverlays(context)
@@ -120,58 +119,60 @@ class SettingsView(context: Context) : LinearLayout(context) {
                 .forEach { (name, value) ->
                     row.addView(action(name, store.chimeFor(kind) == value) {
                         store.setChime(kind, value)
-                        dev.icarus.app.Notifier(context).ensureChannels()
+                        dev.icarus.app.Notifier(context).refreshSoundChannels()
                         render()
                     }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34)).apply { rightMargin = dp(4) })
                 }
             addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
 
-        addView(TextView(context).apply {
-            text = "App classification"
-            setTextColor(IcarusColors.TEXT)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            setPadding(0, dp(16), 0, dp(8))
-        })
-
-        val packages = reader.recentPackages()
-        if (packages.isEmpty()) {
+        if (granted) {
             addView(TextView(context).apply {
-                text = "No recently used apps to classify yet."
-                setTextColor(IcarusColors.MUTED)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                text = "App classification"
+                setTextColor(IcarusColors.TEXT)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                setPadding(0, dp(16), 0, dp(8))
             })
-            return
-        }
-        val classifications = store.classifications()
-        packages.forEach { pkg ->
-            val row = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(0, dp(8), 0, dp(8))
+
+            val packages = reader.recentPackages()
+            if (packages.isEmpty()) {
+                addView(TextView(context).apply {
+                    text = "No recently used apps to classify yet."
+                    setTextColor(IcarusColors.MUTED)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                })
+            } else {
+                val classifications = store.classifications()
+                packages.forEach { pkg ->
+                    val row = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(0, dp(8), 0, dp(8))
+                    }
+                    row.addView(TextView(context).apply {
+                        text = pkg
+                        setTextColor(IcarusColors.TEXT_DIM)
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                    })
+                    val chips = LinearLayout(context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        setPadding(0, dp(6), 0, 0)
+                    }
+                    val options = listOf(
+                        "distraction" to Classification.DISTRACTION,
+                        "productive" to Classification.PRODUCTIVE,
+                        "off" to Classification.UNCLASSIFIED,
+                    )
+                    options.forEach { (label, kind) ->
+                        val selected = AwarenessPolicy.classify(classifications, pkg) == kind
+                        chips.addView(action(label, selected) {
+                            store.setClassification(pkg, kind)
+                            render()
+                        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply { rightMargin = dp(8) })
+                    }
+                    row.addView(chips)
+                    addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                }
             }
-            row.addView(TextView(context).apply {
-                text = pkg
-                setTextColor(IcarusColors.TEXT_DIM)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            })
-            val chips = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, dp(6), 0, 0)
-            }
-            val options = listOf(
-                "distraction" to Classification.DISTRACTION,
-                "productive" to Classification.PRODUCTIVE,
-                "off" to Classification.UNCLASSIFIED,
-            )
-            options.forEach { (label, kind) ->
-                val selected = AwarenessPolicy.classify(classifications, pkg) == kind
-                chips.addView(action(label, selected) {
-                    store.setClassification(pkg, kind)
-                    render()
-                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)).apply { rightMargin = dp(6) })
-            }
-            row.addView(chips)
-            addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
     }
 

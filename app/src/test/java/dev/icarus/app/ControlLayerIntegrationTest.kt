@@ -20,7 +20,7 @@ class ControlLayerIntegrationTest {
     private class Surface : OverlaySurface {
         val calls = mutableListOf<String>()
         override fun canShow() = true
-        override fun show(kind: InterventionKind, title: String) { calls += "show:$kind:$title" }
+        override fun show(request: InterventionRequest, title: String) { calls += "show:${request.kind}:$title" }
         override fun dismiss() { calls += "dismiss" }
         override fun fallback(request: InterventionRequest) { calls += "fallback" }
     }

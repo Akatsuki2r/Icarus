@@ -123,6 +123,11 @@ class MainActivity : Activity() {
         window.navigationBarColor = Color.TRANSPARENT
 
         buildShell()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+            ) { onBack() }
+        }
     }
 
     private fun buildShell() {
@@ -160,12 +165,6 @@ class MainActivity : Activity() {
         }
         setContentView(root)
         show(Destination.TODAY)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-            ) { onBack() }
-        }
     }
 
     private fun show(next: Destination) {
@@ -280,7 +279,7 @@ class MainActivity : Activity() {
     // ----------------------------------------------------------------- render
 
     private fun render() {
-        if (IcarusTheme.apply(this)) crossfadeTheme()
+        if (IcarusTheme.apply(this)) onThemeChanged()
         val now = LocalTime.now()
         clock.text = now.format(clockFormat)
 
@@ -745,6 +744,14 @@ class MainActivity : Activity() {
     }
 
     // ------------------------------------------------------------------ bits
+
+    private fun onThemeChanged() {
+        if (!::shell.isInitialized) return
+        val current = destination
+        buildShell()
+        show(current)
+        crossfadeTheme()
+    }
 
     private fun crossfadeTheme() {
         if (!::shell.isInitialized || !android.animation.ValueAnimator.areAnimatorsEnabled()) return

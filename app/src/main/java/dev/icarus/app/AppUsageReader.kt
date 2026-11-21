@@ -28,7 +28,10 @@ class AppUsageReader(private val context: Context) {
         while (events.hasNextEvent()) {
             val event = UsageEvents.Event()
             events.getNextEvent(event)
-            if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) found = event.packageName
+            when (event.eventType) {
+                UsageEvents.Event.MOVE_TO_FOREGROUND -> found = event.packageName
+                UsageEvents.Event.MOVE_TO_BACKGROUND -> if (found == event.packageName) found = null
+            }
         }
         return found
     }

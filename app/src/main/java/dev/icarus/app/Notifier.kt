@@ -66,6 +66,13 @@ class Notifier(private val context: Context) {
         manager.deleteNotificationChannel(Contract.CHANNEL_ALERTS)
     }
 
+    /** Android does not reliably apply sound changes to an existing channel. */
+    fun refreshSoundChannels() {
+        listOf(Contract.CHANNEL_PREPARE, Contract.CHANNEL_START, Contract.CHANNEL_OVERDUE)
+            .forEach(manager::deleteNotificationChannel)
+        ensureChannels()
+    }
+
     private fun soundFor(kind: String): Uri? {
         val choice = SettingsStore(context).chimeFor(kind)
         if (choice == "system") return Settings.System.DEFAULT_NOTIFICATION_URI
@@ -180,7 +187,6 @@ class Notifier(private val context: Context) {
             .setAutoCancel(true)
             .setContentIntent(openApp())
             .setCategory(Notification.CATEGORY_REMINDER)
-            .addAction(action("Snooze 5 min", Contract.ACTION_LATE, request.blockId, 5))
             .addAction(action("I'm on it", Contract.ACTION_STARTED, request.blockId))
         manager.notify(Contract.NOTIFICATION_LIVE + 7, builder.build())
     }

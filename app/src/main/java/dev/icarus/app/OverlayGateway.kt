@@ -3,7 +3,7 @@ package dev.icarus.app
 /** Android-free seam so the decision to fall back is unit-testable. */
 interface OverlaySurface {
     fun canShow(): Boolean
-    fun show(kind: InterventionKind, title: String)
+    fun show(request: InterventionRequest, title: String)
     fun dismiss()
     fun fallback(request: InterventionRequest)
 }
@@ -29,7 +29,13 @@ class OverlayGateway(
         }
         visible = true
         IcarusTheme.overlayActive = true
-        surface.show(request.kind, titleFor(request.blockId))
+        try {
+            surface.show(request, titleFor(request.blockId))
+        } catch (_: Exception) {
+            visible = false
+            IcarusTheme.overlayActive = false
+            surface.fallback(request)
+        }
     }
 
     fun dismiss() {

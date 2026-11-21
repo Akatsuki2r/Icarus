@@ -84,7 +84,10 @@ class WeekEditorActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        IcarusTheme.apply(this)
+        if (IcarusTheme.apply(this)) {
+            recreate()
+            return
+        }
         render()
     }
 

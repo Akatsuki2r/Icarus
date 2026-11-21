@@ -9,6 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
 import java.time.Instant
@@ -34,6 +35,17 @@ class InterventionControllerTest {
     )
 
     @Test
+    fun noCallEverDoesNotStartGrace() {
+        val c = InterventionController(clock)
+        assertTrue(c.shouldIntervene(LocalTime.of(19, 10)))
+        c.onCall(false)
+        c.onCall(false)
+        assertTrue(c.shouldIntervene(LocalTime.of(19, 10)))
+        c.onTick(LocalTime.of(19, 10), moment, usage)
+        assertNotNull(c.pending)
+    }
+
+    @Test
     fun callKillsOverlayAndStartsGrace() {
         val c = InterventionController(clock)
         c.onTick(LocalTime.of(19, 10), moment, usage)
@@ -43,6 +55,17 @@ class InterventionControllerTest {
         assertNull(c.pending)
         c.onCall(false)
         assertFalse(c.shouldIntervene(LocalTime.of(19, 11)))
+    }
+
+    @Test
+    fun lateCanFireAgainAfterDayReset() {
+        val c = InterventionController(clock)
+        c.onTick(LocalTime.of(19, 10), moment, usage)
+        assertNotNull(c.pending)
+        c.resetDay()
+        c.clear()
+        c.onTick(LocalTime.of(19, 10), moment, usage)
+        assertEquals(InterventionKind.LATE, c.pending?.kind)
     }
 
     @Test

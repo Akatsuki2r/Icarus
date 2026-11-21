@@ -42,11 +42,11 @@ class WindowOverlaySurface(
     override fun canShow(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
 
-    override fun show(kind: InterventionKind, title: String) {
+    override fun show(request: InterventionRequest, title: String) {
         dismiss()
         val overlay = InterventionOverlayView(
             context,
-            kind,
+            request.kind,
             title,
             onSnooze = { onSnooze(); dismiss() },
             onAcknowledge = { onAcknowledge(); dismiss() },
@@ -61,10 +61,9 @@ class WindowOverlaySurface(
             PixelFormat.TRANSLUCENT,
         ).apply { gravity = android.view.Gravity.FILL }
 
-        runCatching { manager?.addView(overlay, params) }
-            .onFailure { dismiss(); return }
+        manager?.addView(overlay, params) ?: error("WindowManager unavailable")
         view = overlay
-        dismissAt = System.currentTimeMillis() + if (kind == InterventionKind.LATE) 10_000L else 8_000L
+        dismissAt = System.currentTimeMillis() + if (request.kind == InterventionKind.LATE) 10_000L else 8_000L
         handler.postDelayed(autoDismiss, 1_000)
         handler.post(callPoll)
     }
