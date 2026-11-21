@@ -89,6 +89,14 @@ class DayStateStore(private val context: Context) {
         prefs.edit().remove(sentKey(date)).apply()
     }
 
+    /** Stored days, newest first, for the History destination. */
+    fun recent(days: Int = 14): List<DayState> = prefs.all.keys
+        .filter { it.startsWith("day.") }
+        .mapNotNull { key -> runCatching { LocalDate.parse(key.removePrefix("day.")) }.getOrNull() }
+        .filter { !it.isBefore(LocalDate.now().minusDays(days.toLong() - 1)) }
+        .sortedDescending()
+        .map(::load)
+
     /** Keep two weeks of history, drop everything older. */
     private fun prune(today: LocalDate) {
         val editor = prefs.edit()
