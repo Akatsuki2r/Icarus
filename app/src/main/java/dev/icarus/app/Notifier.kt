@@ -11,6 +11,7 @@ import android.provider.Settings
 import dev.icarus.app.data.SettingsStore
 import dev.icarus.app.ui.IcarusColors
 import dev.icarus.engine.Alert
+import dev.icarus.engine.AlertKind
 import dev.icarus.engine.Moment
 import dev.icarus.engine.Timeline
 import java.time.Duration
@@ -157,23 +158,13 @@ class Notifier(private val context: Context) {
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setCategory(Notification.CATEGORY_REMINDER)
 
-        when (alert.kind) {
-            dev.icarus.engine.AlertKind.OVERDUE -> {
-                builder
-                    .addAction(action("Started", Contract.ACTION_STARTED, alert.blockId))
-                    .addAction(action("Late 15", Contract.ACTION_LATE, alert.blockId, 15))
-                    .addAction(action("Skip", Contract.ACTION_SKIP, alert.blockId))
+        NotificationCopy.actionLabels(alert.kind).forEach { label ->
+            val (action, minutes) = when (label) {
+                "Started" -> Contract.ACTION_STARTED to 0
+                "Skip" -> Contract.ACTION_SKIP to 0
+                else -> Contract.ACTION_DEFER to 15
             }
-
-            dev.icarus.engine.AlertKind.START -> {
-                builder
-                    .addAction(action("Started", Contract.ACTION_STARTED, alert.blockId))
-                    .addAction(action("Not now (+15)", Contract.ACTION_LATE, alert.blockId, 15))
-            }
-
-            dev.icarus.engine.AlertKind.PREPARE -> {
-                builder.addAction(action("Running late", Contract.ACTION_LATE, alert.blockId, 15))
-            }
+            builder.addAction(action(label, action, alert.blockId, minutes))
         }
 
         manager.notify(alert.key.hashCode(), builder.build())
@@ -188,7 +179,10 @@ class Notifier(private val context: Context) {
             .setAutoCancel(true)
             .setContentIntent(openApp())
             .setCategory(Notification.CATEGORY_REMINDER)
-            .addAction(action("I'm on it", Contract.ACTION_STARTED, request.blockId))
+        NotificationCopy.fallbackActions(late).forEach { label ->
+            val action = if (label == "Snooze 5 min") Contract.ACTION_DEFER else Contract.ACTION_STARTED
+            builder.addAction(action(label, action, request.blockId, 5))
+        }
         manager.notify(Contract.NOTIFICATION_LIVE + 7, builder.build())
     }
 
@@ -277,6 +271,15 @@ class Notifier(private val context: Context) {
 object NotificationCopy {
     fun liveTitle(title: String, minutes: Long): String = "$title · ${short(minutes)} left"
     fun rawName(kind: String): String = "chime_$kind"
+
+    fun actionLabels(kind: AlertKind): List<String> = when (kind) {
+        AlertKind.OVERDUE -> listOf("Started", "Skip")
+        AlertKind.START -> listOf("Started", "Not now (+15)")
+        AlertKind.PREPARE -> listOf("Running late")
+    }
+
+    fun fallbackActions(late: Boolean): List<String> =
+        if (late) listOf("Snooze 5 min", "I'm on it") else listOf("I'm on it")
 
     private fun short(minutes: Long): String {
         val m = minutes.coerceAtLeast(0)

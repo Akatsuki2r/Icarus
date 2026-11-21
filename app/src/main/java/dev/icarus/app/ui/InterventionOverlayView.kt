@@ -69,13 +69,20 @@ class InterventionOverlayView(
         val spacer = View(context).apply { layoutParams = LayoutParams(1, 0, 1f) }
         addView(spacer)
 
-        addView(View(context).apply {
+        val seconds = if (kind == InterventionKind.LATE) 10 else 8
+        val drain = View(context).apply {
             background = GradientDrawable().apply {
-                setColor(IcarusColors.TRACK)
+                setColor(IcarusColors.ACCENT)
                 cornerRadius = dp(2).toFloat()
             }
-        }, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)))
-        val seconds = if (kind == InterventionKind.LATE) 10 else 8
+            pivotX = 0f
+        }
+        addView(drain, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)))
+        if (android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            android.animation.ObjectAnimator.ofFloat(drain, "scaleX", 1f, 0f)
+                .setDuration(seconds * 1000L)
+                .start()
+        }
         addView(TextView(context).apply {
             text = "closes in ${seconds}s"
             setTextColor(IcarusColors.MUTED)

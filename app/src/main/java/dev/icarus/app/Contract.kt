@@ -8,6 +8,7 @@ object Contract {
     const val ACTION_STARTED = "dev.icarus.app.STARTED"
     const val ACTION_LATE = "dev.icarus.app.LATE"
     const val ACTION_SKIP = "dev.icarus.app.SKIP"
+    const val ACTION_DEFER = "dev.icarus.app.DEFER"
     const val ACTION_RECOVER = "dev.icarus.app.RECOVER"
 
     const val EXTRA_BLOCK = "block_id"

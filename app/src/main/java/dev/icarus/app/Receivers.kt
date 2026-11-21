@@ -37,6 +37,19 @@ class ActionReceiver : BroadcastReceiver() {
                 }
             }
 
+            Contract.ACTION_DEFER -> {
+                if (blockId.isNotEmpty()) {
+                    acknowledge(store, date, blockId)
+                    val value = minutes.coerceAtLeast(1)
+                    val text = if (Actions.defer(context, blockId, value.toLong(), date)) {
+                        "Deferred $blockId by $value min."
+                    } else {
+                        "No room to defer $blockId before the next anchor."
+                    }
+                    android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+
             Contract.ACTION_LATE -> {
                 if (blockId.isEmpty()) return
                 acknowledge(store, date, blockId)
