@@ -89,4 +89,49 @@ class InterventionControllerTest {
             AwarenessPolicy.thresholdMinutes(Classification.DISTRACTION, productiveContext = true),
         )
     }
+
+    @Test
+    fun graceExpiresAfterNinetySeconds() {
+        var now = Instant.ofEpochMilli(0)
+        val c = InterventionController { LocalTime.of(19, 10) to now }
+        c.onCall(true)
+        c.onCall(false)
+        assertFalse(c.shouldIntervene(LocalTime.of(19, 10)))
+
+        now = Instant.ofEpochMilli(91_000)
+        assertTrue(c.shouldIntervene(LocalTime.of(19, 12)))
+    }
+
+    @Test
+    fun snoozeBlocksForExactlyFiveMinutes() {
+        var now = Instant.ofEpochMilli(0)
+        val c = InterventionController { LocalTime.of(19, 10) to now }
+        c.onTick(LocalTime.of(19, 10), moment, usage)
+        assertNotNull(c.pending)
+        c.snooze()
+
+        now = Instant.ofEpochMilli(4 * 60_000L)
+        assertFalse(c.shouldIntervene(LocalTime.of(19, 14)))
+        now = Instant.ofEpochMilli(6 * 60_000L)
+        assertTrue(c.shouldIntervene(LocalTime.of(19, 16)))
+    }
+
+    @Test
+    fun stillScrollingFiresForDistractionAfterTwoMinutes() {
+        var now = Instant.ofEpochMilli(0)
+        val c = InterventionController { LocalTime.of(19, 2) to now }
+        // The late nudge fires first; after it is acknowledged, continued
+        // scrolling in a distraction app can raise the second variant.
+        c.onTick(LocalTime.of(19, 2), moment, usage)
+        assertEquals(InterventionKind.LATE, c.pending?.kind)
+        c.clear()
+        now = Instant.ofEpochMilli(11 * 60_000L)
+        c.onTick(LocalTime.of(19, 6), moment, usage)
+        assertEquals(InterventionKind.STILL_SCROLLING, c.pending?.kind)
+
+        c.clear()
+        now = Instant.ofEpochMilli(25 * 60_000L)
+        c.onTick(LocalTime.of(19, 20), moment, usage)
+        assertNull(c.pending)
+    }
 }

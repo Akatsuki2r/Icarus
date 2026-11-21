@@ -34,7 +34,9 @@ class InterventionController(
     private var graceUntil: Instant? = null
     private var suppressUntil: Instant? = null
     private var lastBlockId: String? = null
-    private val lateFired = mutableSetOf<String>()
+    /** Each variant fires at most once per block per day; the two can coexist. */
+    private val firedLate = mutableSetOf<String>()
+    private val firedScroll = mutableSetOf<String>()
 
     fun onTick(
         now: LocalTime,
@@ -54,10 +56,9 @@ class InterventionController(
         if (block.id in completed || block.id in skipped) return
         lastBlockId = block.id
 
-        val late = block.id !in lateFired &&
+        val late = block.id !in firedLate &&
             now.isAfter(block.start.plusMinutes(InterventionPolicy.LATE_AFTER_MIN))
         if (late) {
-            lateFired += block.id
             issue(InterventionKind.LATE, block.id, instant)
             return
         }
@@ -67,6 +68,7 @@ class InterventionController(
         val threshold = AwarenessPolicy.thresholdMinutes(kind, usage.recentProductive)
         val activeMinutes = Duration.between(block.start, now).toMinutes()
         if (dwellMinutes >= threshold &&
+            block.id !in firedScroll &&
             activeMinutes >= InterventionPolicy.SCROLL_BLOCK_ACTIVE_MIN
         ) {
             issue(InterventionKind.STILL_SCROLLING, block.id, instant)
@@ -79,7 +81,7 @@ class InterventionController(
         callActive = active
         if (active) {
             pending = null
-            lastBlockId?.let { lateFired += it }
+            lastBlockId?.let { firedLate += it }
         } else {
             graceUntil = instant.plusSeconds(InterventionPolicy.CALL_GRACE_SEC)
         }
@@ -101,20 +103,22 @@ class InterventionController(
         graceUntil = null
         suppressUntil = null
         callActive = false
-        lateFired.clear()
+        firedLate.clear()
+        firedScroll.clear()
     }
 
     fun shouldIntervene(now: LocalTime): Boolean = !suppressed(clock().second)
 
     private fun issue(kind: InterventionKind, blockId: String, instant: Instant) {
         pending = InterventionRequest(kind, blockId)
+        if (kind == InterventionKind.LATE) firedLate += blockId else firedScroll += blockId
         suppressUntil = instant.plus(Duration.ofMinutes(InterventionPolicy.AFTER_INTERVENTION_MIN))
     }
 
     private fun suppress(minutes: Long) {
         pending = null
         suppressUntil = clock().second.plus(Duration.ofMinutes(minutes))
-        lastBlockId?.let { lateFired += it }
+        lastBlockId?.let { firedLate += it }
     }
 
     private fun suppressed(instant: Instant): Boolean =
