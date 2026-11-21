@@ -31,6 +31,7 @@ class WeekEditorActivity : Activity() {
     private lateinit var store: RoutineStore
     private lateinit var list: LinearLayout
     private lateinit var range: TextView
+    private var shownTokens: dev.icarus.app.Tokens? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +41,12 @@ class WeekEditorActivity : Activity() {
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
+        IcarusTheme.apply(this)
+        shownTokens = IcarusColors.current()
+        setContentView(buildUi())
+    }
+
+    private fun buildUi(): View {
         range = label("", IcarusColors.MUTED).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(4), 0, dp(20))
@@ -79,14 +86,15 @@ class WeekEditorActivity : Activity() {
                 insets
             }
         }
-        setContentView(root)
+        return root
     }
 
     override fun onResume() {
         super.onResume()
-        if (IcarusTheme.apply(this)) {
-            recreate()
-            return
+        IcarusTheme.apply(this)
+        if (shownTokens != IcarusColors.current()) {
+            shownTokens = IcarusColors.current()
+            setContentView(buildUi())
         }
         render()
     }

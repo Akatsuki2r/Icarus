@@ -43,6 +43,7 @@ class DayEditorActivity : Activity() {
     private lateinit var list: LinearLayout
     private lateinit var subtitle: TextView
     private var sheet: BlockEditSheet? = null
+    private var shownTokens: dev.icarus.app.Tokens? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +55,19 @@ class DayEditorActivity : Activity() {
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
+        IcarusTheme.apply(this)
+        shownTokens = IcarusColors.current()
+        setContentView(buildUi())
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+            ) { finish() }
+        }
+    }
+
+    private fun buildUi(): View {
         rail = DayRailView(this).apply { minimumHeight = dp(44) }
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         subtitle = label("", IcarusColors.MUTED).apply {
@@ -130,20 +144,15 @@ class DayEditorActivity : Activity() {
                 insets
             }
         }
-        setContentView(root)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-            ) { finish() }
-        }
+        return root
     }
 
     override fun onResume() {
         super.onResume()
-        if (IcarusTheme.apply(this)) {
-            recreate()
-            return
+        IcarusTheme.apply(this)
+        if (shownTokens != IcarusColors.current()) {
+            shownTokens = IcarusColors.current()
+            setContentView(buildUi())
         }
         render()
     }
