@@ -65,9 +65,17 @@ Two visual variants (approved): **late** — "Started one minute ago", Snooze 5 
 
 Automated: unit tests for classification/policy/dedupe/thresholds, routine edits, and history derivation; 0 lint errors; debug build succeeds. No emulator survives in this environment, so device verification is an explicit handoff: install on the Redmi and check reboots, permission denial/revocation, MIUI Autostart and battery settings, call suppression, overlay dismissal, dock insets, and font scale 1.3. Nothing is claimed as visually verified from code alone.
 
-## 7. State themes
+## 7. App themes and state themes
 
-Three **surface** palettes layered on the existing identity — not a new visual world: **Focus** (current warm dark), **Recovery** (cooler neutral surfaces), **Wind down** (deepened, desaturated). Amber stays reserved for today, anchors, and the primary action in every theme; only surfaces and secondary text shift. Switching is automatic from `Moment` + accepted recovery plan + overlay state, with a manual override in Settings (Auto / Focus / Recovery / Wind down). Implemented through the shared `IcarusTheme` token provider; no Activity recreation, no Dynamic Color extraction, no per-screen theme XML.
+Three **app themes**, each with its own three **state variants**. Components and layout never change; surfaces, tinted secondary text, accent and notification tint come from one `IcarusTheme` token provider.
+
+| App theme | Focus | Recovery | Wind down |
+| --- | --- | --- | --- |
+| **Icarus** (default) | amber `#F2B84B` on `#0B0C0E` | neutral slate accents on `#0E1114` | desaturated amber on `#08090B` |
+| **Tide** | mint `#5FD4C4` on `#081418` | cool blue `#8FB8FF` on `#0A1220` | violet `#B39AE8` on `#0E0B1C` |
+| **Ember** | coral `#FF7A66` on `#140D10` | gold `#E8B86D` on `#14100C` | dusty rose `#C98BA0` on `#100A0F` |
+
+State is chosen automatically from `Moment` + accepted recovery plan + overlay state; Settings has an app-theme picker (Icarus / Tide / Ember) and a mode override (Auto / Focus / Recovery / Wind down). In every variant the accent marks only current state, anchors and primary actions. "Alive" means tonal surfaces that shift hue with state, tinted rather than grey secondary text, a 250ms crossfade on state change, and dock/notification tint following the active theme — not decorative motion or gradient washes. No Activity recreation, no Dynamic Color extraction, no per-screen theme XML.
 
 ## 8. Notification redesign + custom sounds
 
