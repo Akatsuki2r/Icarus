@@ -103,6 +103,7 @@ class RoutineEditorActivity : Activity() {
         actions.addView(
             action("Reset") {
                 store.reset()
+                Actions.onTrack(this)
                 editor.setText(store.raw())
                 editor.setSelection(0)
                 toast("Routine reset to default.")
@@ -139,6 +140,7 @@ class RoutineEditorActivity : Activity() {
             toast(error)
             return
         }
+        Actions.onTrack(this) // an edited template invalidates yesterday's recovery plan
         TimekeeperService.start(this)
         toast("Saved.")
         finish()

@@ -86,5 +86,5 @@ object RoutineJson {
     }
 
     private inline fun <reified T : Enum<T>> String.toEnum(fallback: T): T =
-        runCatching { enumValueOf<T>(this) }.getOrDefault(fallback)
+        if (this.isBlank()) fallback else enumValueOf<T>(this)
 }

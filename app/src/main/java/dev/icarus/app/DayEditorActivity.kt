@@ -235,6 +235,7 @@ class DayEditorActivity : Activity() {
             return
         }
         store.save(edited)
+        Actions.onTrack(this)
         sheet?.dismiss()
         render()
     }
@@ -245,6 +246,7 @@ class DayEditorActivity : Activity() {
             .setMessage(block.title)
             .setPositiveButton("Delete") { _, _ ->
                 store.save(store.load().removeBlock(day, block.id))
+                Actions.onTrack(this)
                 sheet?.dismiss()
                 render()
             }

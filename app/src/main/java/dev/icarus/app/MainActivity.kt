@@ -88,6 +88,7 @@ class MainActivity : Activity() {
     private lateinit var todayCount: TextView
     private lateinit var warningRow: LinearLayout
     private lateinit var warningText: TextView
+    private lateinit var warningFixButton: TextView
     private lateinit var status: TextView
     private lateinit var resetButton: TextView
     private lateinit var skipButton: TextView
@@ -401,6 +402,20 @@ class MainActivity : Activity() {
     }
 
     private fun updateStatus() {
+        routineStore.warning?.let { warning ->
+            warningRow.visibility = View.VISIBLE
+            warningText.text = warning
+            warningFixButton.text = "Edit JSON"
+            warningFixButton.setOnClickListener {
+                startActivity(Intent(this, RoutineEditorActivity::class.java))
+            }
+            status.text = "your schedule is unchanged until you fix or replace the file"
+            status.setTextColor(Colors.WARN)
+            return
+        }
+        warningFixButton.text = "Fix"
+        warningFixButton.setOnClickListener { fixPermissions() }
+
         val missing = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -625,12 +640,13 @@ class MainActivity : Activity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
         }
         warningRow.addView(warningText, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        warningFixButton = button("Fix", filled = false) { fixPermissions() }.apply {
+            setTextColor(Colors.WARN)
+            background = ripple(Colors.WARN_SOFT, 10, ColorStateList.valueOf(0x33FFFFFF))
+        }
         warningRow.addView(
-            button("Fix", filled = false) { fixPermissions() }.apply {
-                setTextColor(Colors.WARN)
-                background = ripple(Colors.WARN_SOFT, 10, ColorStateList.valueOf(0x33FFFFFF))
-            },
-            LinearLayout.LayoutParams(dp(72), dp(44)),
+            warningFixButton,
+            LinearLayout.LayoutParams(dp(84), dp(48)),
         )
         content.addView(
             warningRow,

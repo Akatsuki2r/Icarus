@@ -12,6 +12,10 @@ class RoutineStore(private val context: Context) {
 
     private val file: File get() = File(context.filesDir, "routine.json")
 
+    /** Set when a hand edit could not be parsed; the original file is preserved. */
+    var warning: String? = null
+        private set
+
     fun load(): Routine {
         if (!file.exists()) {
             save(Defaults.routine)
@@ -19,10 +23,12 @@ class RoutineStore(private val context: Context) {
         }
         return runCatching { RoutineJson.fromJson(file.readText()) }
             .getOrElse {
-                // Never let a broken hand-edit brick the app: keep the bad file, fall back.
+                // Never let a broken hand-edit brick the app, and never pretend
+                // the user's routine was fine: keep the bad file for recovery.
                 val broken = File(context.filesDir, "routine.broken.json")
                 runCatching { file.copyTo(broken, overwrite = true) }
-                save(Defaults.routine)
+                warning = "The routine file could not be read. Icarus is using the default schedule; " +
+                    "your original is kept as routine.broken.json."
                 Defaults.routine
             }
     }
