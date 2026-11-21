@@ -33,6 +33,9 @@ data class Block(
     val category: Category,
     val priority: Priority = Priority.FIRM,
     val interrupt: Interrupt = Interrupt.NUDGE,
+    val interventionEnabled: Boolean = true,
+    val dwellLimitMinutes: Long = 0,
+    val productiveContext: Boolean = false,
 ) {
     init {
         require(end.isAfter(start)) { "block '$id' ends at or before it starts" }

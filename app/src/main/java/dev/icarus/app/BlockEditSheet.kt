@@ -48,6 +48,9 @@ class BlockEditSheet(
     private var priority = original.priority
     private var interrupt = original.interrupt
     private var category = original.category
+    private var interventionsEnabled = original.interventionEnabled
+    private var dwellLimit = original.dwellLimitMinutes
+    private var productiveContext = original.productiveContext
 
     private lateinit var startText: TextView
     private lateinit var endText: TextView
@@ -120,6 +123,15 @@ class BlockEditSheet(
             category = it
             select(categoryChips, category)
         })
+        chipRow(root, "Interventions", listOf("on" to true, "off" to false), interventionsEnabled) {
+            interventionsEnabled = it
+        }
+        chipRow(root, "Dwell limit", listOf("policy" to 0L, "5m" to 5L, "10m" to 10L, "20m" to 20L), dwellLimit) {
+            dwellLimit = it
+        }
+        chipRow(root, "Context", listOf("normal" to false, "productive" to true), productiveContext) {
+            productiveContext = it
+        }
 
         errorText = TextView(activity).apply {
             visibility = View.GONE
@@ -142,6 +154,9 @@ class BlockEditSheet(
                 priority = priority,
                 interrupt = interrupt,
                 category = category,
+                interventionEnabled = interventionsEnabled,
+                dwellLimitMinutes = dwellLimit,
+                productiveContext = productiveContext,
             )
             onSave(candidate)
         }, LinearLayout.LayoutParams(0, dp(48), 1f))
@@ -175,7 +190,7 @@ class BlockEditSheet(
         return value
     }
 
-    private fun <T : Enum<T>> chipRow(
+    private fun <T> chipRow(
         parent: LinearLayout,
         label: String,
         entries: List<Pair<String, T>>,

@@ -165,6 +165,9 @@ class TimekeeperService : Service() {
             dwellMillis = foreground?.let { awareness.dwellMillis(it) } ?: 0L,
             recentProductive = awareness.productiveSeenWithin(productive, 15 * 60 * 1000L),
             classifications = classifications,
+            interventionsEnabled = (moment as? Moment.Active)?.block?.interventionEnabled ?: true,
+            dwellLimitMinutes = (moment as? Moment.Active)?.block?.dwellLimitMinutes?.takeIf { it > 0 },
+            productiveContext = (moment as? Moment.Active)?.block?.productiveContext ?: false,
         )
         val state = DayStateStore(this).load(LocalDate.now())
         interventions.onTick(now, moment, signal, state.completed, state.skipped)

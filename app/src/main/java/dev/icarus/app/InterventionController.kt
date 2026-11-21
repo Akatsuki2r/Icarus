@@ -18,6 +18,9 @@ data class UsageSignal(
     val dwellMillis: Long,
     val recentProductive: Boolean,
     val classifications: Map<String, Classification>,
+    val interventionsEnabled: Boolean = true,
+    val dwellLimitMinutes: Long? = null,
+    val productiveContext: Boolean = false,
 )
 
 /**
@@ -46,7 +49,7 @@ class InterventionController(
         skipped: Set<String> = emptySet(),
     ) {
         val instant = clock().second
-        if (callActive) {
+        if (callActive || !usage.interventionsEnabled) {
             pending = null
             return
         }
@@ -65,7 +68,9 @@ class InterventionController(
 
         val dwellMinutes = usage.dwellMillis / 60_000L
         val kind = AwarenessPolicy.classify(usage.classifications, usage.foreground.orEmpty())
-        val threshold = AwarenessPolicy.thresholdMinutes(kind, usage.recentProductive)
+        val productive = usage.recentProductive || usage.productiveContext
+        val threshold = usage.dwellLimitMinutes?.toInt()
+            ?: AwarenessPolicy.thresholdMinutes(kind, productive)
         val activeMinutes = Duration.between(block.start, now).toMinutes()
         if (dwellMinutes >= threshold &&
             block.id !in firedScroll &&

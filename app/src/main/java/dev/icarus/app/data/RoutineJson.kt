@@ -55,6 +55,9 @@ object RoutineJson {
         .put("category", block.category.name)
         .put("priority", block.priority.name)
         .put("interrupt", block.interrupt.name)
+        .put("interventionEnabled", block.interventionEnabled)
+        .put("dwellLimitMinutes", block.dwellLimitMinutes)
+        .put("productiveContext", block.productiveContext)
 
     fun blockFromJson(json: JSONObject): Block {
         val start = LocalTime.parse(json.getString("start"), time)
@@ -67,6 +70,10 @@ object RoutineJson {
             category = json.optString("category").toEnum(Category.SCHOOL),
             priority = json.optString("priority").toEnum(Priority.FIRM),
             interrupt = json.optString("interrupt").toEnum(Interrupt.NUDGE),
+            interventionEnabled = json.optBoolean("interventionEnabled", true),
+            dwellLimitMinutes = runCatching { json.optLong("dwellLimitMinutes", 0) }
+                .getOrDefault(0).coerceIn(0, 240),
+            productiveContext = json.optBoolean("productiveContext", false),
         )
     }
 
