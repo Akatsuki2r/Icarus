@@ -77,8 +77,19 @@ class SettingsStore(private val context: Context) {
 
     fun markPermissionAsked(key: String) = prefs.edit().putBoolean("$KEY_ASKED.$key", true).apply()
 
+    fun interventionsEnabled(): Boolean = prefs.getBoolean(KEY_INTERVENTIONS, true)
+
+    fun setInterventionsEnabled(enabled: Boolean) =
+        prefs.edit().putBoolean(KEY_INTERVENTIONS, enabled).apply()
+
+    var lastTick: Long
+        get() = prefs.getLong(KEY_LAST_TICK, 0L)
+        set(value) { prefs.edit().putLong(KEY_LAST_TICK, value).apply() }
+
     private companion object {
         const val KEY_ASKED = "asked"
+        const val KEY_INTERVENTIONS = "interventions_enabled"
+        const val KEY_LAST_TICK = "last_tick"
         const val KEY_CLASSIFICATIONS = "classifications"
         const val KEY_THEME = "theme"
         const val KEY_MODE = "theme_mode"

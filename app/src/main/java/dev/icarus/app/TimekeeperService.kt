@@ -111,6 +111,7 @@ class TimekeeperService : Service() {
         val timeline = Actions.timeline(this, today)
         val moment = timeline.moment(now)
         IcarusTheme.apply(this)
+        settings.lastTick = System.currentTimeMillis()
 
         deliverAlerts(today, now, timeline)
         evaluateInterventions(now, moment, timeline)
@@ -169,7 +170,8 @@ class TimekeeperService : Service() {
             dwellMillis = foreground?.let { awareness.dwellMillis(it) } ?: 0L,
             recentProductive = awareness.productiveSeenWithin(productive, 15 * 60 * 1000L),
             classifications = classifications,
-            interventionsEnabled = (moment as? Moment.Active)?.block?.interventionEnabled ?: true,
+            interventionsEnabled = settings.interventionsEnabled() &&
+                ((moment as? Moment.Active)?.block?.interventionEnabled ?: true),
             dwellLimitMinutes = (moment as? Moment.Active)?.block?.dwellLimitMinutes?.takeIf { it > 0 },
             productiveContext = (moment as? Moment.Active)?.block?.productiveContext ?: false,
         )

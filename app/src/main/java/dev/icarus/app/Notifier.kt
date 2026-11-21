@@ -170,6 +170,22 @@ class Notifier(private val context: Context) {
         manager.notify(alert.key.hashCode(), builder.build())
     }
 
+    /** A deliberate test so the user can prove notifications work before trusting alerts. */
+    fun testAlert() {
+        manager.notify(
+            Contract.NOTIFICATION_LIVE + 9,
+            Notification.Builder(context, Contract.CHANNEL_OVERDUE)
+                .setSmallIcon(R.drawable.ic_stat_icarus)
+                .setContentTitle("Icarus can reach you")
+                .setContentText("If you can see this, notifications are working.")
+                .setAutoCancel(true)
+                .setContentIntent(openApp())
+                .setColor(IcarusColors.ACCENT)
+                .setCategory(Notification.CATEGORY_REMINDER)
+                .build(),
+        )
+    }
+
     fun intervention(request: InterventionRequest) {
         val late = request.kind == InterventionKind.LATE
         val builder = Notification.Builder(context, Contract.CHANNEL_OVERDUE)

@@ -32,6 +32,27 @@ class RoutineHomeView(context: Context) : LinearLayout(context) {
             setPadding(0, dp(12), 0, dp(20))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         addView(TextView(context).apply {
+            text = "Rules"
+            setTextColor(IcarusColors.TEXT)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setPadding(0, dp(20), 0, dp(8))
+        })
+        addView(TextView(context).apply {
+            text = "Anchors never move. If a FIRM block is missed, flexible time absorbs it. " +
+                "Interventions wait 1 minute after a late start, then ask once per block; " +
+                "calls suppress them. Per-block limits live in the editor."
+            setTextColor(IcarusColors.MUTED)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setLineSpacing(dp(3).toFloat(), 1f)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = GradientDrawable().apply {
+                setColor(IcarusColors.CARD)
+                cornerRadius = dp(12).toFloat()
+                setStroke(dp(1), IcarusColors.HAIRLINE)
+            }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
+        addView(TextView(context).apply {
             text = "Open weekly editor"
             gravity = Gravity.CENTER
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
