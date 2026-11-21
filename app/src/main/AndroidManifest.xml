@@ -30,6 +30,14 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".WeekEditorActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".DayEditorActivity"
+            android:exported="false" />
+
         <service
             android:name=".TimekeeperService"
             android:exported="false"

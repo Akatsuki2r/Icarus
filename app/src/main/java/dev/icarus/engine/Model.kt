@@ -78,3 +78,24 @@ data class Routine(val byDay: Map<DayOfWeek, List<Block>>) {
         val EMPTY = Routine(emptyMap())
     }
 }
+
+/** Immutable edits used by the block editor. */
+fun Routine.withBlock(day: DayOfWeek, block: Block): Routine = copy(
+    byDay = byDay + (day to (blocksFor(day).filterNot { it.id == block.id } + block).sortedBy { it.start }),
+)
+
+fun Routine.removeBlock(day: DayOfWeek, id: String): Routine = copy(
+    byDay = byDay + (day to blocksFor(day).filterNot { it.id == id }),
+)
+
+/** First clean one-hour slot from 06:00 onward. */
+fun Routine.nextFreeHour(day: DayOfWeek): LocalTime {
+    val blocks = blocksFor(day)
+    var candidate = LocalTime.of(6, 0)
+    while (candidate.hour < 23) {
+        val end = candidate.plusHours(1)
+        if (blocks.none { it.start < end && it.end > candidate }) return candidate
+        candidate = end
+    }
+    return LocalTime.of(22, 0)
+}

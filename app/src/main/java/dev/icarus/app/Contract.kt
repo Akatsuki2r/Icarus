@@ -12,6 +12,7 @@ object Contract {
 
     const val EXTRA_BLOCK = "block_id"
     const val EXTRA_MINUTES = "minutes"
+    const val EXTRA_DAY = "day"
 
     const val CHANNEL_LIVE = "live"
     const val CHANNEL_ALERTS = "alerts"
