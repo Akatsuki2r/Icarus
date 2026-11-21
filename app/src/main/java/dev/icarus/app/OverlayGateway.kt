@@ -28,11 +28,13 @@ class OverlayGateway(
             return
         }
         visible = true
+        IcarusTheme.overlayActive = true
         surface.show(request.kind, titleFor(request.blockId))
     }
 
     fun dismiss() {
         visible = false
+        IcarusTheme.overlayActive = false
         surface.dismiss()
     }
 

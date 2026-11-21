@@ -12,10 +12,13 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import dev.icarus.app.AppUsageReader
+import dev.icarus.app.IcarusTheme
 import dev.icarus.app.R
 import dev.icarus.app.data.AwarenessPolicy
+import dev.icarus.app.data.AppTheme
 import dev.icarus.app.data.Classification
 import dev.icarus.app.data.SettingsStore
+import dev.icarus.app.data.ThemeMode
 
 class SettingsView(context: Context) : LinearLayout(context) {
 
@@ -23,6 +26,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
     private val reader = AppUsageReader(context)
 
     fun render() {
+        IcarusTheme.apply(context)
         removeAllViews()
         orientation = LinearLayout.VERTICAL
         setBackgroundColor(IcarusColors.BG)
@@ -66,6 +70,35 @@ class SettingsView(context: Context) : LinearLayout(context) {
                 )
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
         }
+
+        addView(TextView(context).apply {
+            text = "Appearance"
+            setTextColor(IcarusColors.TEXT)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setPadding(0, dp(16), 0, dp(8))
+        })
+        val themeRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("Icarus" to AppTheme.ICARUS, "Tide" to AppTheme.TIDE, "Ember" to AppTheme.EMBER)
+            .forEach { (name, value) ->
+                themeRow.addView(action(name, store.appTheme() == value) {
+                    store.setAppTheme(value)
+                    render()
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)).apply { rightMargin = dp(6) })
+            }
+        addView(themeRow)
+
+        val modeRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(8), 0, 0)
+        }
+        listOf("Auto" to ThemeMode.AUTO, "Focus" to ThemeMode.FOCUS, "Recovery" to ThemeMode.RECOVERY, "Wind down" to ThemeMode.WIND_DOWN)
+            .forEach { (name, value) ->
+                modeRow.addView(action(name, store.themeMode() == value) {
+                    store.setThemeMode(value)
+                    render()
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)).apply { rightMargin = dp(6) })
+            }
+        addView(modeRow)
 
         addView(TextView(context).apply {
             text = "App classification"

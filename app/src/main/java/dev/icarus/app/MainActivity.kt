@@ -280,6 +280,7 @@ class MainActivity : Activity() {
     // ----------------------------------------------------------------- render
 
     private fun render() {
+        if (IcarusTheme.apply(this)) crossfadeTheme()
         val now = LocalTime.now()
         clock.text = now.format(clockFormat)
 
@@ -745,6 +746,16 @@ class MainActivity : Activity() {
 
     // ------------------------------------------------------------------ bits
 
+    private fun crossfadeTheme() {
+        if (!::shell.isInitialized || !android.animation.ValueAnimator.areAnimatorsEnabled()) return
+        shell.alpha = 0.6f
+        shell.animate()
+            .alpha(1f)
+            .setDuration(250)
+            .setInterpolator(PathInterpolator(0.23f, 1f, 0.32f, 1f))
+            .start()
+    }
+
     private fun animateCardIn() {
         if (!android.animation.ValueAnimator.areAnimatorsEnabled()) {
             card.alpha = 1f
@@ -852,18 +863,18 @@ class MainActivity : Activity() {
     private val monoBold: Typeface by lazy { Typeface.create(Typeface.MONOSPACE, Typeface.BOLD) }
 
     private object Colors {
-        val BG = Color.parseColor("#0B0C0E")
-        val CARD = Color.parseColor("#15181B")
-        val CARD_ALT = Color.parseColor("#101315")
-        val HAIRLINE = Color.parseColor("#242A30")
-        val TRACK = Color.parseColor("#2C333A")
-        val TEXT = Color.parseColor("#F2F3F5")
-        val TEXT_DIM = Color.parseColor("#C7CCD2")
-        val DIM = Color.parseColor("#98A0A9")
-        val MUTED = Color.parseColor("#7B838D")
-        val ACCENT = Color.parseColor("#F2B84B")
-        val GOOD = Color.parseColor("#6FCF8A")
-        val WARN = Color.parseColor("#E58D6F")
-        val WARN_SOFT = Color.parseColor("#1E1614")
+        val BG get() = dev.icarus.app.ui.IcarusColors.BG
+        val CARD get() = dev.icarus.app.ui.IcarusColors.CARD
+        val CARD_ALT get() = dev.icarus.app.ui.IcarusColors.CARD
+        val HAIRLINE get() = dev.icarus.app.ui.IcarusColors.HAIRLINE
+        val TRACK get() = dev.icarus.app.ui.IcarusColors.TRACK
+        val TEXT get() = dev.icarus.app.ui.IcarusColors.TEXT
+        val TEXT_DIM get() = dev.icarus.app.ui.IcarusColors.TEXT_DIM
+        val DIM get() = dev.icarus.app.ui.IcarusColors.MUTED
+        val MUTED get() = dev.icarus.app.ui.IcarusColors.MUTED
+        val ACCENT get() = dev.icarus.app.ui.IcarusColors.ACCENT
+        val GOOD get() = dev.icarus.app.ui.IcarusColors.GOOD
+        val WARN get() = dev.icarus.app.ui.IcarusColors.WARN
+        val WARN_SOFT get() = dev.icarus.app.ui.IcarusColors.CARD
     }
 }
