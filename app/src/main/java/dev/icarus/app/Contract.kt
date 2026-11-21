@@ -16,6 +16,9 @@ object Contract {
 
     const val CHANNEL_LIVE = "live"
     const val CHANNEL_ALERTS = "alerts"
+    const val CHANNEL_PREPARE = "alert.prepare"
+    const val CHANNEL_START = "alert.start"
+    const val CHANNEL_OVERDUE = "alert.overdue"
 
     const val NOTIFICATION_LIVE = 1001
     const val ALARM_REQUEST = 2001

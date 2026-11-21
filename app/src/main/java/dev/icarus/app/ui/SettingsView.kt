@@ -101,6 +101,33 @@ class SettingsView(context: Context) : LinearLayout(context) {
         addView(modeRow)
 
         addView(TextView(context).apply {
+            text = "Alert sounds"
+            setTextColor(IcarusColors.TEXT)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setPadding(0, dp(16), 0, dp(8))
+        })
+        listOf("prepare", "start", "overdue").forEach { kind ->
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dp(4), 0, dp(4))
+            }
+            row.addView(TextView(context).apply {
+                text = kind
+                setTextColor(IcarusColors.MUTED)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            }, LinearLayout.LayoutParams(dp(64), ViewGroup.LayoutParams.WRAP_CONTENT))
+            listOf("Default" to "system", "Soft" to "prepare", "Clear" to "start", "Firm" to "overdue")
+                .forEach { (name, value) ->
+                    row.addView(action(name, store.chimeFor(kind) == value) {
+                        store.setChime(kind, value)
+                        dev.icarus.app.Notifier(context).ensureChannels()
+                        render()
+                    }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34)).apply { rightMargin = dp(4) })
+                }
+            addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+
+        addView(TextView(context).apply {
             text = "App classification"
             setTextColor(IcarusColors.TEXT)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)

@@ -6,6 +6,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import dev.icarus.app.data.SettingsStore
+import dev.icarus.app.ui.IcarusColors
 import dev.icarus.engine.Alert
 import dev.icarus.engine.Moment
 import dev.icarus.engine.Timeline
@@ -36,17 +40,41 @@ class Notifier(private val context: Context) {
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             },
         )
-        manager.createNotificationChannel(
-            NotificationChannel(
-                Contract.CHANNEL_ALERTS,
-                "Transitions",
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                description = "Ten minutes before, at the start, and ten minutes late."
-                enableVibration(true)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            },
-        )
+        listOf(
+            Triple(Contract.CHANNEL_PREPARE, "Prepare", "Ten minutes before a block starts."),
+            Triple(Contract.CHANNEL_START, "Start", "A block is starting now."),
+            Triple(Contract.CHANNEL_OVERDUE, "Overdue", "A strict block is ten minutes late."),
+        ).forEach { (id, name, description) ->
+            manager.createNotificationChannel(
+                NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH).apply {
+                    this.description = description
+                    enableVibration(true)
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                    val sound = soundFor(id.removePrefix("alert."))
+                    if (sound != null) {
+                        setSound(
+                            sound,
+                            android.media.AudioAttributes.Builder()
+                                .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                                .build(),
+                        )
+                    }
+                },
+            )
+        }
+        // The old single alert channel is replaced by the three above.
+        manager.deleteNotificationChannel(Contract.CHANNEL_ALERTS)
+    }
+
+    private fun soundFor(kind: String): Uri? {
+        val choice = SettingsStore(context).chimeFor(kind)
+        if (choice == "system") return Settings.System.DEFAULT_NOTIFICATION_URI
+        val raw = context.resources.getIdentifier(NotificationCopy.rawName(choice), "raw", context.packageName)
+        return if (raw == 0) {
+            Settings.System.DEFAULT_NOTIFICATION_URI
+        } else {
+            Uri.parse("android.resource://${context.packageName}/$raw")
+        }
     }
 
     fun live(timeline: Timeline, moment: Moment, now: LocalTime): Notification {
@@ -57,6 +85,7 @@ class Notifier(private val context: Context) {
             .setShowWhen(true)
             .setContentIntent(openApp())
             .setCategory(Notification.CATEGORY_STATUS)
+            .setColor(IcarusColors.ACCENT)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
 
         when (moment) {
@@ -67,7 +96,6 @@ class Notifier(private val context: Context) {
                     .setContentTitle("${block.title} · ${short(remaining)} left")
                     .setContentText(upNextText(timeline, now))
                     .setSubText("${block.start.format(time)} – ${block.end.format(time)}")
-                    .setProgress(100, (moment.fraction * 100).toInt(), false)
                     .setUsesChronometer(true)
                     .setChronometerCountDown(true)
                     .setWhen(System.currentTimeMillis() + moment.remaining.toMillis())
@@ -106,7 +134,12 @@ class Notifier(private val context: Context) {
     }
 
     fun alert(alert: Alert, blockTitle: String) {
-        val builder = Notification.Builder(context, Contract.CHANNEL_ALERTS)
+        val channel = when (alert.kind) {
+            dev.icarus.engine.AlertKind.PREPARE -> Contract.CHANNEL_PREPARE
+            dev.icarus.engine.AlertKind.START -> Contract.CHANNEL_START
+            dev.icarus.engine.AlertKind.OVERDUE -> Contract.CHANNEL_OVERDUE
+        }
+        val builder = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_icarus)
             .setContentTitle(alert.title)
             .setContentText(alert.text)
@@ -140,7 +173,7 @@ class Notifier(private val context: Context) {
 
     fun intervention(request: InterventionRequest) {
         val late = request.kind == InterventionKind.LATE
-        val builder = Notification.Builder(context, Contract.CHANNEL_ALERTS)
+        val builder = Notification.Builder(context, Contract.CHANNEL_OVERDUE)
             .setSmallIcon(R.drawable.ic_stat_icarus)
             .setContentTitle(if (late) "Started one minute ago." else "This block is running.")
             .setContentText("Overlay permission is off. Open Icarus to act.")
@@ -225,6 +258,22 @@ class Notifier(private val context: Context) {
         val m = duration.toMinutes() % 60
         return when {
             h > 0 && m > 0 -> "${h}h ${m}m"
+            h > 0 -> "${h}h"
+            else -> "${m}m"
+        }
+    }
+}
+
+/** Pure copy helpers so notification wording is JVM-testable. */
+object NotificationCopy {
+    fun liveTitle(title: String, minutes: Long): String = "$title · ${short(minutes)} left"
+    fun rawName(kind: String): String = "chime_$kind"
+
+    private fun short(minutes: Long): String {
+        val m = minutes.coerceAtLeast(0)
+        val h = m / 60
+        return when {
+            h > 0 && m % 60 > 0 -> "${h}h ${m % 60}m"
             h > 0 -> "${h}h"
             else -> "${m}m"
         }
