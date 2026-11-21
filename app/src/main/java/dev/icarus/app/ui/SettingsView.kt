@@ -49,6 +49,24 @@ class SettingsView(context: Context) : LinearLayout(context) {
             return
         }
 
+        val canOverlay = android.provider.Settings.canDrawOverlays(context)
+        addView(TextView(context).apply {
+            text = if (canOverlay) "Full-screen interventions: on" else "Full-screen interventions: off — alerts fall back to the shade"
+            setTextColor(if (canOverlay) IcarusColors.GOOD else Color.WARN)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, dp(4), 0, dp(10))
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        if (!canOverlay) {
+            addView(action("Open overlay settings") {
+                context.startActivity(
+                    Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${context.packageName}"),
+                    ),
+                )
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
+        }
+
         addView(TextView(context).apply {
             text = "App classification"
             setTextColor(IcarusColors.TEXT)

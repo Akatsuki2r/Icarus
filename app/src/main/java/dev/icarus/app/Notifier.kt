@@ -138,6 +138,20 @@ class Notifier(private val context: Context) {
         manager.notify(alert.key.hashCode(), builder.build())
     }
 
+    fun intervention(request: InterventionRequest) {
+        val late = request.kind == InterventionKind.LATE
+        val builder = Notification.Builder(context, Contract.CHANNEL_ALERTS)
+            .setSmallIcon(R.drawable.ic_stat_icarus)
+            .setContentTitle(if (late) "Started one minute ago." else "This block is running.")
+            .setContentText("Overlay permission is off. Open Icarus to act.")
+            .setAutoCancel(true)
+            .setContentIntent(openApp())
+            .setCategory(Notification.CATEGORY_REMINDER)
+            .addAction(action("Snooze 5 min", Contract.ACTION_LATE, request.blockId, 5))
+            .addAction(action("I'm on it", Contract.ACTION_STARTED, request.blockId))
+        manager.notify(Contract.NOTIFICATION_LIVE + 7, builder.build())
+    }
+
     fun cancel(key: String) = manager.cancel(key.hashCode())
 
     fun cancelAllAlerts() {
