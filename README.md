@@ -194,12 +194,28 @@ never an overlapping or anchor-breaking recovery plan.
 
 ---
 
+## Control layer — device verification (not yet run)
+
+No emulator survives in this environment, so the following are **unverified on
+hardware** and must be checked on the Redmi:
+
+- Reboot the phone; confirm the foreground service and live notification return.
+- Deny then grant Usage Access and Draw over other apps; confirm Settings
+  reports each state and the overlay falls back to a notification when denied.
+- MIUI: Autostart on, battery "No restrictions", and keep the exact-alarm
+  permission, or the timekeeper is killed with the screen off.
+- Put the phone in a call (cellular, then WhatsApp/Snap/TikTok if available);
+  confirm the overlay is dismissed and a 90s grace follows. VoIP suppression is
+  best-effort: Android does not expose third-party call state to ordinary apps.
+- Verify both overlay variants exit by Back, volume key and long-press, and
+  that the late variant's Snooze suppresses for five minutes.
+- Set font scale to 1.3 (`adb shell settings put system font_scale 1.3`), check
+  the dock, editor and sheet for clipping, then restore it to 1.0.
+
 ## Deliberately not built (yet)
 
-- **Usage stats detection.** `PACKAGE_USAGE_STATS` could tell you "you've been
-  on Instagram for 40 minutes" and trigger recovery automatically. Powerful,
-  but it is surveillance of yourself; add it only if manual recovery stops
-  being enough.
+- **App restriction / screen-time enforcement.** The control layer observes and
+  asks; it does not lock apps. That is the next evolution, not this sprint.
 - **Weekly review.** A Sunday block that asks two questions and rewrites next
   week's template. Right now the template is edited by hand.
 - **Inbox / capture.** Life admin currently lives in a block called "Life
