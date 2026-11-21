@@ -9,6 +9,8 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import dev.icarus.app.data.DayStateStore
+import dev.icarus.app.data.SettingsStore
+import dev.icarus.app.data.Classification
 import dev.icarus.engine.Alert
 import dev.icarus.engine.Moment
 import dev.icarus.engine.NotifyPolicy
@@ -26,6 +28,9 @@ class TimekeeperService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var notifier: Notifier
+    private lateinit var awareness: AppUsageReader
+    private lateinit var settings: SettingsStore
+    private val interventions = InterventionController()
     private var lastSignature: String? = null
     private var servingDate: LocalDate = LocalDate.now()
 
@@ -40,6 +45,8 @@ class TimekeeperService : Service() {
         super.onCreate()
         notifier = Notifier(this)
         notifier.ensureChannels()
+        awareness = AppUsageReader(this)
+        settings = SettingsStore(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -85,6 +92,7 @@ class TimekeeperService : Service() {
         val moment = timeline.moment(now)
 
         deliverAlerts(today, now, timeline)
+        evaluateInterventions(now, moment, today)
 
         val signature = signatureOf(moment)
         if (signature != lastSignature) {
@@ -108,6 +116,22 @@ class TimekeeperService : Service() {
             notifier.alert(alert, alert.title)
             store.markSent(date, alert.key)
         }
+    }
+
+    private fun evaluateInterventions(now: LocalTime, moment: Moment, today: LocalDate) {
+        val classifications = settings.classifications()
+        val foreground = awareness.foreground()
+        val productive = classifications.filter { it.value == Classification.PRODUCTIVE }.keys.toSet()
+        val signal = UsageSignal(
+            foreground = foreground,
+            dwellMillis = foreground?.let { awareness.dwellMillis(it) } ?: 0L,
+            recentProductive = awareness.productiveSeenWithin(productive, 15 * 60 * 1000L),
+            classifications = classifications,
+        )
+        val state = DayStateStore(this).load(today)
+        interventions.onTick(now, moment, signal, state.completed, state.skipped)
+        // Task 5 consumes the request through OverlayGateway. Until then, clear it.
+        interventions.clear()
     }
 
     private fun signatureOf(moment: Moment): String = when (moment) {
