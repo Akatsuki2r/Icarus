@@ -1,6 +1,7 @@
 package dev.icarus.app
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -23,6 +24,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.animation.PathInterpolator
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -35,6 +37,11 @@ import dev.icarus.engine.Priority
 import dev.icarus.engine.Recovery
 import dev.icarus.engine.Routine
 import dev.icarus.engine.Timeline
+import dev.icarus.app.ui.Destination
+import dev.icarus.app.ui.DockView
+import dev.icarus.app.ui.HistoryView
+import dev.icarus.app.ui.RoutineHomeView
+import dev.icarus.app.ui.SettingsView
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -52,6 +59,14 @@ class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val clockFormat = DateTimeFormatter.ofPattern("HH:mm:ss")
     private val hm = DateTimeFormatter.ofPattern("HH:mm")
+
+    private lateinit var shell: FrameLayout
+    private lateinit var dock: DockView
+    private lateinit var todayScreen: View
+    private lateinit var routineScreen: RoutineHomeView
+    private lateinit var historyScreen: HistoryView
+    private lateinit var settingsScreen: SettingsView
+    private var destination: Destination = Destination.TODAY
 
     private lateinit var routineStore: RoutineStore
     private var routine: Routine = Routine.EMPTY
@@ -107,7 +122,78 @@ class MainActivity : Activity() {
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
-        setContentView(buildUi())
+        buildShell()
+    }
+
+    private fun buildShell() {
+        todayScreen = buildUi()
+        routineScreen = RoutineHomeView(this).apply { render() }
+        historyScreen = HistoryView(this).apply { render() }
+        settingsScreen = SettingsView(this).apply { render() }
+
+        shell = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
+            )
+        }
+        dock = DockView(this) { show(it) }
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Colors.BG)
+            addView(shell)
+            addView(
+                dock,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    .apply { topMargin = dp(8) },
+            )
+            setOnApplyWindowInsetsListener { view, insets ->
+                val bottom = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime()).bottom
+                } else {
+                    @Suppress("DEPRECATION")
+                    insets.systemWindowInsetBottom
+                }
+                view.setPadding(0, 0, 0, dp(8) + bottom)
+                insets
+            }
+        }
+        setContentView(root)
+        show(Destination.TODAY)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+            ) { onBack() }
+        }
+    }
+
+    private fun show(next: Destination) {
+        destination = next
+        shell.removeAllViews()
+        shell.addView(
+            when (next) {
+                Destination.TODAY -> todayScreen
+                Destination.ROUTINE -> routineScreen
+                Destination.HISTORY -> historyScreen
+                Destination.SETTINGS -> settingsScreen
+            },
+        )
+        dock.select(next)
+    }
+
+    @SuppressLint("GestureBackNavigation")
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        onBack()
+    }
+
+    private fun onBack() {
+        if (destination != Destination.TODAY) {
+            show(Destination.TODAY)
+        } else {
+            finish()
+        }
     }
 
     override fun onResume() {
@@ -568,14 +654,14 @@ class MainActivity : Activity() {
             clipToPadding = false
             addView(content)
             setOnApplyWindowInsetsListener { view, insets ->
-                val (top, bottom) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
-                    bars.top to bars.bottom
+                val topInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    insets.getInsets(WindowInsets.Type.systemBars()).top
                 } else {
                     @Suppress("DEPRECATION")
-                    insets.systemWindowInsetTop to insets.systemWindowInsetBottom
+                    insets.systemWindowInsetTop
                 }
-                view.setPadding(0, dp(22) + top, 0, dp(20) + bottom)
+                // Bottom inset belongs to the shell's dock, not the scrolling content.
+                view.setPadding(0, dp(22) + topInset, 0, dp(12))
                 insets
             }
         }
