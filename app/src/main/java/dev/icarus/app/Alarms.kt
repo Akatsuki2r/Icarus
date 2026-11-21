@@ -11,6 +11,9 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 
+/** A wake-up with the date attached: the last alarm of today must arm tomorrow. */
+data class Wake(val date: LocalDate, val time: LocalTime)
+
 /**
  * Wake-ups. The foreground service does the second-by-second work, but a
  * service can be killed by the OS or by a battery cleaner. Alarms are the
@@ -24,25 +27,45 @@ object Alarms {
         return context.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
     }
 
-    /** The next moment worth waking the phone for, or null if the day is over. */
-    fun nextWake(timeline: Timeline, now: LocalTime = LocalTime.now()): LocalTime? {
-        val alert = NotifyPolicy.next(now, timeline.activeBlocks())?.at
-        val transition = timeline.activeBlocks().firstOrNull { it.start.isAfter(now) }?.start
-        return listOfNotNull(alert, transition).filter { it.isAfter(now) }.minOrNull()
+    /** The next moment worth waking for, rolling into tomorrow when today is done. */
+    fun nextWake(
+        timeline: Timeline,
+        now: LocalTime = LocalTime.now(),
+        date: LocalDate = timeline.date,
+        tomorrow: Timeline? = null,
+    ): Wake? {
+        candidates(timeline, now).minOrNull()?.let { return Wake(date, it) }
+        val nextDay = tomorrow ?: return null
+        candidates(nextDay, LocalTime.MIDNIGHT).minOrNull()?.let {
+            return Wake(date.plusDays(1), it)
+        }
+        return null
     }
 
-    fun scheduleNext(context: Context, at: LocalTime) {
+    private fun candidates(timeline: Timeline, after: LocalTime): List<LocalTime> {
+        val blocks = timeline.activeBlocks()
+        val alert = NotifyPolicy.next(after, blocks)?.at
+        val transition = blocks.firstOrNull { it.start.isAfter(after) }?.start
+        return listOfNotNull(alert, transition).filter { it.isAfter(after) }
+    }
+
+    fun scheduleNext(context: Context, wake: Wake) {
+        scheduleAt(
+            context,
+            wake.date.atTime(wake.time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        )
+    }
+
+    /** Used when the foreground service was blocked: retry shortly, not at the next transition. */
+    fun scheduleRetry(context: Context, delayMillis: Long = 30_000L) {
+        scheduleAt(context, System.currentTimeMillis() + delayMillis)
+    }
+
+    private fun scheduleAt(context: Context, trigger: Long) {
         val manager = context.getSystemService(AlarmManager::class.java)
         val pending = pendingIntent(context)
-        val trigger = LocalDate.now()
-            .atTime(at)
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-
-        val exact = canScheduleExact(context)
         try {
-            if (exact) {
+            if (canScheduleExact(context)) {
                 manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending)
             } else {
                 manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pending)

@@ -17,7 +17,6 @@ class WindowOverlaySurface(
     private val onAcknowledge: () -> Unit,
     private val onExit: () -> Unit,
     private val onFallback: (InterventionRequest) -> Unit,
-    private val titleFor: (String) -> String,
 ) : OverlaySurface {
 
     private val manager = context.getSystemService(WindowManager::class.java)
@@ -76,6 +75,4 @@ class WindowOverlaySurface(
     }
 
     override fun fallback(request: InterventionRequest) = onFallback(request)
-
-    fun titleForBlock(id: String): String = titleFor(id)
 }

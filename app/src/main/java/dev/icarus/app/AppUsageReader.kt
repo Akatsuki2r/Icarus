@@ -2,9 +2,12 @@ package dev.icarus.app
 
 import android.app.AppOpsManager
 import android.app.usage.UsageEvents
+import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.os.Process
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Reads only foreground package and dwell time. No keystrokes, no screen text,
@@ -20,29 +23,13 @@ class AppUsageReader(private val context: Context) {
             AppOpsManager.MODE_ALLOWED
     }
 
-    fun foreground(): String? {
-        if (!hasAccess()) return null
-        val now = System.currentTimeMillis()
-        val events = usage?.queryEvents(now - WINDOW_MS, now) ?: return null
-        var found: String? = null
-        while (events.hasNextEvent()) {
-            val event = UsageEvents.Event()
-            events.getNextEvent(event)
-            when (event.eventType) {
-                UsageEvents.Event.MOVE_TO_FOREGROUND -> found = event.packageName
-                UsageEvents.Event.MOVE_TO_BACKGROUND -> if (found == event.packageName) found = null
-            }
-        }
-        return found
-    }
+    fun foreground(): String? = stats()
+        .filter { it.lastTimeUsed > 0 }
+        .maxByOrNull { it.lastTimeUsed }
+        ?.packageName
 
-    fun dwellMillis(pkg: String): Long {
-        if (!hasAccess()) return 0L
-        val now = System.currentTimeMillis()
-        return usage?.queryUsageStats(UsageStatsManager.INTERVAL_BEST, now - WINDOW_MS, now)
-            ?.firstOrNull { it.packageName == pkg }
-            ?.totalTimeInForeground ?: 0L
-    }
+    fun dwellMillis(pkg: String): Long =
+        stats().firstOrNull { it.packageName == pkg }?.totalTimeInForeground ?: 0L
 
     fun recentPackages(limit: Int = 12): List<String> {
         if (!hasAccess()) return emptyList()
@@ -52,6 +39,16 @@ class AppUsageReader(private val context: Context) {
             .sortedByDescending { it.totalTimeInForeground }
             .map { it.packageName }
             .take(limit)
+    }
+
+    private fun stats(): List<UsageStats> {
+        if (!hasAccess()) return emptyList()
+        val now = System.currentTimeMillis()
+        val startOfDay = LocalDate.now()
+            .atStartOfDay(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        return usage?.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startOfDay, now).orEmpty()
     }
 
     fun productiveSeenWithin(packages: Set<String>, millis: Long): Boolean {
@@ -70,7 +67,6 @@ class AppUsageReader(private val context: Context) {
 
     private companion object {
         const val APP_OP_USAGE_STATS = "android:get_usage_stats"
-        const val WINDOW_MS = 15 * 60 * 1000L
         const val DAY_MS = 24 * 60 * 60 * 1000L
     }
 }

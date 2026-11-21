@@ -10,6 +10,7 @@ import android.os.IBinder
 import android.os.Looper
 import dev.icarus.app.data.DayStateStore
 import dev.icarus.app.data.SettingsStore
+import dev.icarus.app.ui.IcarusColors
 import dev.icarus.app.data.Classification
 import dev.icarus.engine.Alert
 import dev.icarus.engine.Moment
@@ -58,8 +59,8 @@ class TimekeeperService : Service() {
             { overlay.acknowledge() },
             { overlay.hardwareExit() },
             { notifier.intervention(it) },
-        ) { id -> blockTitles[id] ?: id }
-        overlay = OverlayGateway(surface)
+        )
+        overlay = OverlayGateway(surface) { id -> blockTitles[id] ?: id }
         overlay.onSnooze = { interventions.snooze() }
         overlay.onAcknowledge = { interventions.acknowledge() }
         overlay.onExit = { interventions.hardwareExit() }
@@ -89,6 +90,7 @@ class TimekeeperService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(ticker)
+        if (::overlay.isInitialized) overlay.dismiss()
         super.onDestroy()
     }
 
@@ -107,11 +109,12 @@ class TimekeeperService : Service() {
         val now = LocalTime.now()
         val timeline = Actions.timeline(this, today)
         val moment = timeline.moment(now)
+        IcarusTheme.apply(this)
 
         deliverAlerts(today, now, timeline)
         evaluateInterventions(now, moment, timeline)
 
-        val signature = signatureOf(moment)
+        val signature = signatureOf(moment, IcarusColors.ACCENT)
         if (signature != lastSignature) {
             notifier.ensureChannels()
             notifier.live(timeline, moment, now).let {
@@ -121,7 +124,13 @@ class TimekeeperService : Service() {
             lastSignature = signature
         }
 
-        val wake = Alarms.nextWake(timeline, now)
+        val tomorrow = today.plusDays(1)
+        val wake = Alarms.nextWake(
+            timeline,
+            now,
+            today,
+            Actions.timeline(this, tomorrow),
+        )
         if (wake != null) Alarms.scheduleNext(this, wake)
     }
 
@@ -143,7 +152,7 @@ class TimekeeperService : Service() {
         val callActive = callMonitor.isActive()
         interventions.onCall(callActive)
         if (callActive) {
-            overlay.dismiss()
+            overlay.onCall(true)
             interventions.clear()
             return
         }
@@ -163,10 +172,10 @@ class TimekeeperService : Service() {
         interventions.clear()
     }
 
-    private fun signatureOf(moment: Moment): String = when (moment) {
-        is Moment.Active -> "a:${moment.block.id}"
-        is Moment.Waiting -> "w:${moment.next?.id}"
-        Moment.Finished -> "f"
+    private fun signatureOf(moment: Moment, accent: Int): String = when (moment) {
+        is Moment.Active -> "a:${moment.block.id}:$accent"
+        is Moment.Waiting -> "w:${moment.next?.id}:$accent"
+        Moment.Finished -> "f:$accent"
     }
 
     companion object {
@@ -177,8 +186,11 @@ class TimekeeperService : Service() {
             try {
                 context.startForegroundService(intent)
             } catch (_: IllegalStateException) {
-                // Background start blocked (some OEM battery managers). The alarm will retry.
-                Alarms.nextWake(Actions.timeline(context))?.let { Alarms.scheduleNext(context, it) }
+                // Battery manager blocked the foreground start. Retry shortly so
+                // the event that woke us is not skipped; the alarm is the backstop.
+                Alarms.scheduleRetry(context)
+            } catch (_: SecurityException) {
+                Alarms.scheduleRetry(context)
             }
         }
 

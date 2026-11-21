@@ -31,6 +31,7 @@ class RoutineEditorActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         store = RoutineStore(this)
+        IcarusTheme.apply(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false)
@@ -204,11 +205,11 @@ class RoutineEditorActivity : Activity() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private object Colors {
-        val BG = Color.parseColor("#0B0C0E")
-        val CARD = Color.parseColor("#15181B")
-        val HAIRLINE = Color.parseColor("#242A30")
-        val TEXT_DIM = Color.parseColor("#C7CCD2")
-        val MUTED = Color.parseColor("#7B838D")
-        val ACCENT = Color.parseColor("#F2B84B")
+        val BG get() = dev.icarus.app.ui.IcarusColors.BG
+        val CARD get() = dev.icarus.app.ui.IcarusColors.CARD
+        val HAIRLINE get() = dev.icarus.app.ui.IcarusColors.HAIRLINE
+        val TEXT_DIM get() = dev.icarus.app.ui.IcarusColors.TEXT_DIM
+        val MUTED get() = dev.icarus.app.ui.IcarusColors.MUTED
+        val ACCENT get() = dev.icarus.app.ui.IcarusColors.ACCENT
     }
 }

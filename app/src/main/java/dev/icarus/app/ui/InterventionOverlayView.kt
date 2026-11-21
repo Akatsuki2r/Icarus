@@ -93,7 +93,7 @@ class InterventionOverlayView(
             addView(actions)
         } else {
             addView(TextView(context).apply {
-                text = "No snooze · hold volume down to exit"
+                text = "No snooze · volume or long-press to exit"
                 setTextColor(IcarusColors.MUTED)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
                 gravity = Gravity.CENTER

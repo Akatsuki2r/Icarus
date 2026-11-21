@@ -204,6 +204,14 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         routine = routineStore.load()
+        val settings = dev.icarus.app.data.SettingsStore(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
+            !settings.permissionAsked("notifications")
+        ) {
+            settings.markPermissionAsked("notifications")
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 42)
+        }
         if (::settingsScreen.isInitialized && destination == Destination.SETTINGS) settingsScreen.render()
         TimekeeperService.start(this)
         handler.removeCallbacks(ticker)
@@ -748,6 +756,7 @@ class MainActivity : Activity() {
     private fun onThemeChanged() {
         if (!::shell.isInitialized) return
         val current = destination
+        listSignature = null
         buildShell()
         show(current)
         crossfadeTheme()

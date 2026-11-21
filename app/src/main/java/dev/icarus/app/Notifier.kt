@@ -14,6 +14,7 @@ import dev.icarus.engine.Alert
 import dev.icarus.engine.Moment
 import dev.icarus.engine.Timeline
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -100,7 +101,7 @@ class Notifier(private val context: Context) {
                 val block = moment.block
                 val remaining = moment.remaining.toMinutes().coerceAtLeast(0)
                 builder
-                    .setContentTitle("${block.title} · ${short(remaining)} left")
+                    .setContentTitle(NotificationCopy.liveTitle(block.title, remaining))
                     .setContentText(upNextText(timeline, now))
                     .setSubText("${block.start.format(time)} – ${block.end.format(time)}")
                     .setUsesChronometer(true)
@@ -244,13 +245,15 @@ class Notifier(private val context: Context) {
     )
 
     private fun action(label: String, action: String, blockId: String, minutes: Int = 0): Notification.Action {
+        val date = LocalDate.now().toString()
         val intent = Intent(context, ActionReceiver::class.java)
             .setAction(action)
             .putExtra(Contract.EXTRA_BLOCK, blockId)
             .putExtra(Contract.EXTRA_MINUTES, minutes)
+            .putExtra(Contract.EXTRA_DAY, date)
         val pending = PendingIntent.getBroadcast(
             context,
-            (action + blockId + minutes).hashCode(),
+            (action + blockId + minutes + date).hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

@@ -73,7 +73,12 @@ class SettingsStore(private val context: Context) {
 
     fun setChime(kind: String, value: String) = prefs.edit().putString("$KEY_CHIME.$kind", value).apply()
 
+    fun permissionAsked(key: String): Boolean = prefs.getBoolean("$KEY_ASKED.$key", false)
+
+    fun markPermissionAsked(key: String) = prefs.edit().putBoolean("$KEY_ASKED.$key", true).apply()
+
     private companion object {
+        const val KEY_ASKED = "asked"
         const val KEY_CLASSIFICATIONS = "classifications"
         const val KEY_THEME = "theme"
         const val KEY_MODE = "theme_mode"

@@ -60,10 +60,15 @@ class NotifyPolicyTest {
     }
 
     @Test
-    fun `a phone that was off does not dump a backlog`() {
+    fun `a delayed alarm still delivers the start, not an ancient backlog`() {
         val blocks = listOf(b("revision", "18:00", "19:00"))
-        // 25 minutes late: both alerts are stale.
-        assertTrue(NotifyPolicy.due(LocalTime.parse("18:25"), blocks, emptySet()).isEmpty())
+        // 25 minutes late: the start still matters, the prepare note is gone.
+        assertEquals(
+            listOf(AlertKind.START),
+            NotifyPolicy.due(LocalTime.parse("18:25"), blocks, emptySet()).map { it.kind },
+        )
+        // An hour late is a different day; no backlog dump.
+        assertTrue(NotifyPolicy.due(LocalTime.parse("19:00"), blocks, emptySet()).isEmpty())
     }
 
     @Test

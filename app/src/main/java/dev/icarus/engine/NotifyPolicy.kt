@@ -33,8 +33,11 @@ object NotifyPolicy {
     val PREPARE_LEAD: Duration = Duration.ofMinutes(10)
     val OVERDUE_AFTER: Duration = Duration.ofMinutes(10)
 
-    /** Ignore alerts older than this; a phone that was off should not dump a backlog. */
-    val STALE_AFTER: Duration = Duration.ofMinutes(3)
+    /** MIUI/Doze can deliver an exact alarm late; keep the window usable but bounded. */
+    val STALE_AFTER: Duration = Duration.ofMinutes(45)
+
+    /** A "wrap up" note is useless once it is old; urgent alerts survive longer. */
+    val PREPARE_STALE_AFTER: Duration = Duration.ofMinutes(5)
 
     private val clock: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
@@ -95,9 +98,14 @@ object NotifyPolicy {
         staleAfter: Duration = STALE_AFTER,
     ): List<Alert> = schedule(blocks)
         .filter { alert ->
+            val window = if (alert.kind == AlertKind.PREPARE) {
+                minOf(staleAfter, PREPARE_STALE_AFTER)
+            } else {
+                staleAfter
+            }
             alert.key !in sent &&
                 !alert.at.isAfter(now) &&
-                Duration.between(alert.at, now) <= staleAfter
+                Duration.between(alert.at, now) <= window
         }
         .sortedBy { it.at }
 

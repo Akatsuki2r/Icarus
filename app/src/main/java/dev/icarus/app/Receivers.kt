@@ -8,36 +8,58 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 /**
- * Handles taps on notification buttons. Every action mutates the day, clears
- * the alert that asked the question, and bounces the timekeeper so the live
- * notification reflects reality immediately.
+ * Handles taps on notification buttons. Every action mutates the day the
+ * question belonged to, clears the alert that asked it, and bounces the
+ * timekeeper so the live notification reflects reality immediately.
  */
 class ActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val blockId = intent.getStringExtra(Contract.EXTRA_BLOCK).orEmpty()
-        val minutes = intent.getIntExtra(Contract.EXTRA_MINUTES, 15)
+        val minutes = intent.getIntExtra(Contract.EXTRA_MINUTES, 0)
+        val date = runCatching {
+            intent.getStringExtra(Contract.EXTRA_DAY)?.let(LocalDate::parse)
+        }.getOrNull() ?: LocalDate.now()
         val store = DayStateStore(context)
-        val today = LocalDate.now()
 
         when (intent.action) {
             Contract.ACTION_STARTED -> {
-                if (blockId.isNotEmpty()) acknowledge(store, today, blockId)
+                if (blockId.isNotEmpty()) {
+                    acknowledge(store, date, blockId)
+                    Actions.complete(context, blockId, date)
+                }
             }
 
             Contract.ACTION_SKIP -> {
                 if (blockId.isNotEmpty()) {
-                    acknowledge(store, today, blockId)
-                    Actions.skip(context, blockId)
+                    acknowledge(store, date, blockId)
+                    Actions.skip(context, blockId, date)
                 }
             }
 
-            Contract.ACTION_LATE, Contract.ACTION_RECOVER -> {
-                if (blockId.isNotEmpty()) acknowledge(store, today, blockId)
-                val plan = Actions.recover(context, LocalTime.now())
-                val text = when {
-                    plan.isEmpty -> "Nothing missed - you're on schedule."
-                    else -> "Recovered: ${plan.summary.first()}"
+            Contract.ACTION_LATE -> {
+                if (blockId.isEmpty()) return
+                acknowledge(store, date, blockId)
+                val text = if (minutes > 0) {
+                    if (Actions.defer(context, blockId, minutes.toLong(), date)) {
+                        "Deferred $blockId by $minutes min."
+                    } else {
+                        "No room to defer $blockId before the next anchor."
+                    }
+                } else {
+                    val plan = Actions.recover(context, LocalTime.now(), date)
+                    if (plan.isEmpty) "Nothing missed - you're on schedule."
+                    else "Recovered: ${plan.summary.first()}"
+                }
+                android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_SHORT).show()
+            }
+
+            Contract.ACTION_RECOVER -> {
+                val plan = Actions.recover(context, LocalTime.now(), date)
+                val text = if (plan.isEmpty) {
+                    "Nothing missed - you're on schedule."
+                } else {
+                    "Recovered: ${plan.summary.first()}"
                 }
                 android.widget.Toast.makeText(context, text, android.widget.Toast.LENGTH_SHORT).show()
             }
@@ -58,19 +80,29 @@ class AlarmReceiver : BroadcastReceiver() {
 }
 
 /**
- * A reboot should not reset your day. Restart the timekeeper and re-arm the
- * next wake-up; state is already on disk.
+ * A reboot or a date change should not reset your day. Restart the
+ * timekeeper and re-arm the next wake-up; state is already on disk.
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_LOCKED_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_DATE_CHANGED,
+            "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED",
             -> {
                 TimekeeperService.start(context)
-                Alarms.nextWake(Actions.timeline(context))?.let { Alarms.scheduleNext(context, it) }
+                val today = LocalDate.now()
+                val tomorrow = today.plusDays(1)
+                Alarms.nextWake(
+                    Actions.timeline(context, today),
+                    LocalTime.now(),
+                    today,
+                    Actions.timeline(context, tomorrow),
+                )?.let { wake -> Alarms.scheduleNext(context, wake) }
             }
         }
     }
