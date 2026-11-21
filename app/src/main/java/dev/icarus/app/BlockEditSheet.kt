@@ -208,7 +208,7 @@ class BlockEditSheet(
         entries.forEach { (text, value) ->
             val chip = action(text, filled = false) { onSelect(value) }
             chip.setPadding(dp(10), dp(8), dp(10), dp(8))
-            row.addView(chip, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply { rightMargin = dp(6) })
+            row.addView(chip, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)).apply { rightMargin = dp(8) })
             chips[value] = chip
         }
         parent.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))

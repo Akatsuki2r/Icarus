@@ -57,8 +57,15 @@ class SettingsView(context: Context) : LinearLayout(context) {
             text = if (canOverlay) "Full-screen interventions: on" else "Full-screen interventions: off — alerts fall back to the shade"
             setTextColor(if (canOverlay) IcarusColors.GOOD else Color.WARN)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0, dp(4), 0, dp(10))
+            setPadding(0, dp(4), 0, dp(4))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(TextView(context).apply {
+            text = "Calls suppress interventions. Cellular calls are detected reliably; WhatsApp, " +
+                "Snap and other VoIP calls are best-effort because Android does not expose them."
+            setTextColor(IcarusColors.MUTED)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            setPadding(0, 0, 0, dp(10))
+        })
         if (!canOverlay) {
             addView(action("Open overlay settings") {
                 context.startActivity(
@@ -82,7 +89,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
                 themeRow.addView(action(name, store.appTheme() == value) {
                     store.setAppTheme(value)
                     render()
-                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)).apply { rightMargin = dp(6) })
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)).apply { rightMargin = dp(8) })
             }
         addView(themeRow)
 
@@ -95,7 +102,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
                 modeRow.addView(action(name, store.themeMode() == value) {
                     store.setThemeMode(value)
                     render()
-                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36)).apply { rightMargin = dp(6) })
+                }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)).apply { rightMargin = dp(8) })
             }
         addView(modeRow)
 
@@ -121,7 +128,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
                         store.setChime(kind, value)
                         dev.icarus.app.Notifier(context).refreshSoundChannels()
                         render()
-                    }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34)).apply { rightMargin = dp(4) })
+                    }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)).apply { rightMargin = dp(8) })
                 }
             addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
@@ -167,7 +174,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
                         chips.addView(action(label, selected) {
                             store.setClassification(pkg, kind)
                             render()
-                        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply { rightMargin = dp(8) })
+                        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)).apply { rightMargin = dp(8) })
                     }
                     row.addView(chips)
                     addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))

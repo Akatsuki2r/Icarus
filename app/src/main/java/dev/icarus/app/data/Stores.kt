@@ -61,25 +61,11 @@ class DayStateStore(private val context: Context) {
 
     private val prefs = context.getSharedPreferences("icarus.state", Context.MODE_PRIVATE)
 
-    fun load(date: LocalDate): DayState {
-        val raw = prefs.getString(key(date), null) ?: return DayState.empty(date)
-        return runCatching {
-            val json = JSONObject(raw)
-            DayState(
-                date = date,
-                skipped = json.optJSONArray("skipped").toStringSet(),
-                completed = json.optJSONArray("completed").toStringSet(),
-                plan = json.optJSONArray("plan")?.let { RoutineJson.blocksFromJson(it) },
-            )
-        }.getOrElse { DayState.empty(date) }
-    }
+    fun load(date: LocalDate): DayState =
+        DayStateJson.fromJsonOrEmpty(prefs.getString(key(date), null), date)
 
     fun save(state: DayState) {
-        val json = JSONObject()
-            .put("skipped", JSONArray(state.skipped.toList()))
-            .put("completed", JSONArray(state.completed.toList()))
-            .apply { put("plan", state.plan?.let { RoutineJson.blocksToJson(it) } ?: JSONObject.NULL) }
-        prefs.edit().putString(key(state.date), json.toString()).apply()
+        prefs.edit().putString(key(state.date), DayStateJson.toJson(state)).apply()
         prune(state.date)
     }
 
@@ -119,9 +105,4 @@ class DayStateStore(private val context: Context) {
 
     private fun key(date: LocalDate) = "day.$date"
     private fun sentKey(date: LocalDate) = "sent.$date"
-
-    private fun JSONArray?.toStringSet(): Set<String> {
-        if (this == null) return emptySet()
-        return (0 until length()).mapNotNull { optString(it, null) }.toSet()
-    }
 }
