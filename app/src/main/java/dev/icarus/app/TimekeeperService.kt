@@ -36,6 +36,7 @@ class TimekeeperService : Service() {
     private var blockTitles: Map<String, String> = emptyMap()
     private val interventions = InterventionController()
     private var lastSignature: String? = null
+    private var scheduledWake: Wake? = null
     private var servingDate: LocalDate = LocalDate.now()
 
     private val ticker = object : Runnable {
@@ -131,7 +132,10 @@ class TimekeeperService : Service() {
             today,
             Actions.timeline(this, tomorrow),
         )
-        if (wake != null) Alarms.scheduleNext(this, wake)
+        if (wake != null && wake != scheduledWake) {
+            Alarms.scheduleNext(this, wake)
+            scheduledWake = wake
+        }
     }
 
     private fun deliverAlerts(date: LocalDate, now: LocalTime, timeline: dev.icarus.engine.Timeline) {
