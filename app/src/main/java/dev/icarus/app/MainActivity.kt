@@ -170,6 +170,12 @@ class MainActivity : Activity() {
 
     private fun show(next: Destination) {
         destination = next
+        when (next) {
+            Destination.ROUTINE -> routineScreen.render()
+            Destination.HISTORY -> historyScreen.render()
+            Destination.SETTINGS -> settingsScreen.render()
+            Destination.TODAY -> Unit
+        }
         shell.removeAllViews()
         shell.addView(
             when (next) {
@@ -199,6 +205,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         routine = routineStore.load()
+        if (::settingsScreen.isInitialized && destination == Destination.SETTINGS) settingsScreen.render()
         TimekeeperService.start(this)
         handler.removeCallbacks(ticker)
         handler.post(ticker)
