@@ -187,10 +187,16 @@ class DayEditorActivity : Activity() {
             setOnClickListener { openSheet(block) }
         }
         val hm = DateTimeFormatter.ofPattern("HH:mm")
-        row.addView(label(block.start.format(hm), IcarusColors.ACCENT).apply {
+        val times = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        times.addView(label(block.start.format(hm), IcarusColors.ACCENT).apply {
             typeface = Typeface.MONOSPACE
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        }, LinearLayout.LayoutParams(dp(52), ViewGroup.LayoutParams.WRAP_CONTENT))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        })
+        times.addView(label("→ ${block.end.format(hm)}  ·  ${dev.icarus.app.ui.TimeEdit.durationLabel(block.start, block.end)}", IcarusColors.MUTED).apply {
+            typeface = Typeface.MONOSPACE
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+        })
+        row.addView(times, LinearLayout.LayoutParams(dp(94), ViewGroup.LayoutParams.WRAP_CONTENT))
         row.addView(label(block.title, IcarusColors.TEXT).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))

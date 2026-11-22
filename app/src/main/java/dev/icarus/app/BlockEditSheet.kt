@@ -52,8 +52,6 @@ class BlockEditSheet(
     private var dwellLimit = original.dwellLimitMinutes
     private var productiveContext = original.productiveContext
 
-    private lateinit var startText: TextView
-    private lateinit var endText: TextView
     private lateinit var errorText: TextView
     private lateinit var titleField: EditText
     private val priorityChips = mutableMapOf<Priority, TextView>()
@@ -100,16 +98,11 @@ class BlockEditSheet(
         }
         root.addView(titleField, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        startText = timeRow(root, "Start", original.start) { dir -> stepTime(true, dir) }
-        endText = timeRow(root, "End", original.end) { dir -> stepTime(false, dir) }
-
-        root.addView(TextView(activity).apply {
-            text = "Steps of 15 min"
-            setTextColor(IcarusColors.MUTED)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-            gravity = Gravity.END
-            setPadding(0, dp(2), 0, dp(10))
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val times = dev.icarus.app.ui.TimeDisplayView(activity).apply {
+            setTimes(original.start, original.end)
+            onTimesChanged = { from, to -> start = from; end = to }
+        }
+        root.addView(times, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         priorityChips.putAll(chipRow(root, "Priority", Priority.entries.map { it.name.lowercase() to it }, priority) {
             priority = it
@@ -164,32 +157,6 @@ class BlockEditSheet(
         return root
     }
 
-    private fun timeRow(parent: LinearLayout, label: String, time: LocalTime, onStep: (Int) -> Unit): TextView {
-        val row = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(8), 0, 0)
-        }
-        row.addView(TextView(activity).apply {
-            text = label
-            setTextColor(IcarusColors.MUTED)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-
-        val value = TextView(activity).apply {
-            text = time.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-            setTextColor(IcarusColors.TEXT)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            typeface = Typeface.MONOSPACE
-            setPadding(dp(10), 0, dp(10), 0)
-        }
-        row.addView(value)
-        row.addView(action("−", filled = false) { onStep(-1) }, LinearLayout.LayoutParams(dp(48), dp(48)))
-        row.addView(action("+", filled = false) { onStep(1) }, LinearLayout.LayoutParams(dp(48), dp(48)))
-        parent.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        return value
-    }
-
     private fun <T> chipRow(
         parent: LinearLayout,
         label: String,
@@ -223,25 +190,6 @@ class BlockEditSheet(
             chip.setTextColor(if (active) IcarusColors.BG else IcarusColors.TEXT_DIM)
             chip.background = actionBackground(active)
         }
-    }
-
-    private fun stepTime(isStart: Boolean, direction: Int) {
-        val current = if (isStart) start else end
-        val minutes = current.hour * 60 + current.minute + direction * 15
-        if (minutes !in 0..1425) return
-        val next = LocalTime.of(minutes / 60, minutes % 60)
-        if (isStart && !next.isBefore(end) || !isStart && !next.isAfter(start)) {
-            setError("End must be after start")
-            return
-        }
-        if (isStart) {
-            start = next
-            startText.text = next.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-        } else {
-            end = next
-            endText.text = next.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-        }
-        errorText.visibility = View.GONE
     }
 
     private fun action(text: String, filled: Boolean, onClick: () -> Unit): TextView =
