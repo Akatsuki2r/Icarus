@@ -1,7 +1,6 @@
 package dev.icarus.app
 
 import android.content.Context
-import dev.icarus.app.data.AppTheme
 import dev.icarus.app.data.DayStateStore
 import dev.icarus.app.data.SettingsStore
 import dev.icarus.app.data.ThemeMode
@@ -13,44 +12,72 @@ enum class ThemeState { FOCUS, RECOVERY, WIND_DOWN }
 data class Tokens(
     val bg: Int,
     val surface: Int,
+    val raised: Int,
     val outline: Int,
     val track: Int,
     val text: Int,
     val textDim: Int,
     val muted: Int,
     val accent: Int,
+    val accentSoft: Int,
     val good: Int,
     val warn: Int,
 )
 
 object IcarusTheme {
 
-    /** Set by the overlay gateway while an intervention is visible. */
     var overlayActive: Boolean = false
 
-    private val TABLE: Map<AppTheme, Map<ThemeState, Tokens>> = mapOf(
-        AppTheme.ICARUS to mapOf(
-            ThemeState.FOCUS to Tokens(0xFF0B0C0E.toInt(), 0xFF15181B.toInt(), 0xFF242A30.toInt(), 0xFF2C333A.toInt(), 0xFFF2F3F5.toInt(), 0xFFC7CCD2.toInt(), 0xFF7B838D.toInt(), 0xFFF2B84B.toInt(), 0xFF6FCF8A.toInt(), 0xFFE58D6F.toInt()),
-            ThemeState.RECOVERY to Tokens(0xFF0E1114.toInt(), 0xFF181D21.toInt(), 0xFF273039.toInt(), 0xFF303B44.toInt(), 0xFFEFF2F4.toInt(), 0xFFBFC8CF.toInt(), 0xFF84919B.toInt(), 0xFF9BA6B2.toInt(), 0xFF6FCF8A.toInt(), 0xFFE58D6F.toInt()),
-            ThemeState.WIND_DOWN to Tokens(0xFF08090B.toInt(), 0xFF111316.toInt(), 0xFF20242A.toInt(), 0xFF292E35.toInt(), 0xFFE8E4DE.toInt(), 0xFFBDb6AC.toInt(), 0xFF7E7A74.toInt(), 0xFFC9A86A.toInt(), 0xFF6FCF8A.toInt(), 0xFFE58D6F.toInt()),
+    private val TABLE: Map<dev.icarus.app.data.AppTheme, Map<ThemeState, Tokens>> = mapOf(
+        dev.icarus.app.data.AppTheme.MOSS to mapOf(
+            ThemeState.FOCUS to Tokens(
+                0xFF10140F.toInt(), 0xFF171C15.toInt(), 0xFF1F261C.toInt(), 0xFF2E3828.toInt(),
+                0xFF262E22.toInt(), 0xFFEDF0E6.toInt(), 0xFFC3CBB8.toInt(), 0xFF94A089.toInt(),
+                0xFFB7C98A.toInt(), 0xFF6E7F52.toInt(), 0xFF9BC98A.toInt(), 0xFFD9A07A.toInt()),
+            ThemeState.RECOVERY to Tokens(
+                0xFF0F1412.toInt(), 0xFF161D1A.toInt(), 0xFF1E2722.toInt(), 0xFF283A31.toInt(),
+                0xFF223029.toInt(), 0xFFEAF0E9.toInt(), 0xFFBECBC0.toInt(), 0xFF8FA396.toInt(),
+                0xFF8FC2AE.toInt(), 0xFF4F7E6A.toInt(), 0xFF9BC98A.toInt(), 0xFFD9A07A.toInt()),
+            ThemeState.WIND_DOWN to Tokens(
+                0xFF0C100E.toInt(), 0xFF131815.toInt(), 0xFF1A211C.toInt(), 0xFF242E27.toInt(),
+                0xFF1E2620.toInt(), 0xFFE6E9DE.toInt(), 0xFFB9C1B0.toInt(), 0xFF8B957F.toInt(),
+                0xFFA8B89A.toInt(), 0xFF616E57.toInt(), 0xFF9BC98A.toInt(), 0xFFD9A07A.toInt()),
         ),
-        AppTheme.TIDE to mapOf(
-            ThemeState.FOCUS to Tokens(0xFF081418.toInt(), 0xFF102226.toInt(), 0xFF1D3A42.toInt(), 0xFF1A333A.toInt(), 0xFFE8F6F4.toInt(), 0xFFB9D3D0.toInt(), 0xFF7FA3A0.toInt(), 0xFF5FD4C4.toInt(), 0xFF6FCF9A.toInt(), 0xFFE59A7A.toInt()),
-            ThemeState.RECOVERY to Tokens(0xFF0A1220.toInt(), 0xFF121E32.toInt(), 0xFF1E3450.toInt(), 0xFF1B2E45.toInt(), 0xFFE8F0FA.toInt(), 0xFFB6C9DE.toInt(), 0xFF7E9BB8.toInt(), 0xFF8FB8FF.toInt(), 0xFF6FCF9A.toInt(), 0xFFE59A7A.toInt()),
-            ThemeState.WIND_DOWN to Tokens(0xFF0E0B1C.toInt(), 0xFF19142E.toInt(), 0xFF2B2347.toInt(), 0xFF261F3E.toInt(), 0xFFF0EAFA.toInt(), 0xFFC6B8DE.toInt(), 0xFF8D7FA8.toInt(), 0xFFB39AE8.toInt(), 0xFF6FCF9A.toInt(), 0xFFE59A7A.toInt()),
+        dev.icarus.app.data.AppTheme.CLAY to mapOf(
+            ThemeState.FOCUS to Tokens(
+                0xFF161210.toInt(), 0xFF201A16.toInt(), 0xFF2A211B.toInt(), 0xFF3A2C24.toInt(),
+                0xFF31261F.toInt(), 0xFFF5EDE4.toInt(), 0xFFDCC9BA.toInt(), 0xFFB39C8B.toInt(),
+                0xFFD89B72.toInt(), 0xFF8A5E46.toInt(), 0xFF9DBE8E.toInt(), 0xFFE0A384.toInt()),
+            ThemeState.RECOVERY to Tokens(
+                0xFF141311.toInt(), 0xFF1D1B17.toInt(), 0xFF26231D.toInt(), 0xFF363027.toInt(),
+                0xFF2D2921.toInt(), 0xFFF2EDE2.toInt(), 0xFFD8CCB8.toInt(), 0xFFAC9C82.toInt(),
+                0xFFC9AE82.toInt(), 0xFF7E6B4C.toInt(), 0xFF9DBE8E.toInt(), 0xFFE0A384.toInt()),
+            ThemeState.WIND_DOWN to Tokens(
+                0xFF100D0C.toInt(), 0xFF191513.toInt(), 0xFF211B18.toInt(), 0xFF2E2420.toInt(),
+                0xFF271E1A.toInt(), 0xFFEEE4DE.toInt(), 0xFFD2BFB4.toInt(), 0xFFA38A7C.toInt(),
+                0xFFC48F85.toInt(), 0xFF78554F.toInt(), 0xFF9DBE8E.toInt(), 0xFFE0A384.toInt()),
         ),
-        AppTheme.EMBER to mapOf(
-            ThemeState.FOCUS to Tokens(0xFF140D10.toInt(), 0xFF24161C.toInt(), 0xFF3B242D.toInt(), 0xFF36212A.toInt(), 0xFFFBECEC.toInt(), 0xFFDCC2C6.toInt(), 0xFFA9828C.toInt(), 0xFFFF7A66.toInt(), 0xFF86C99A.toInt(), 0xFFF0A07E.toInt()),
-            ThemeState.RECOVERY to Tokens(0xFF14100C.toInt(), 0xFF241D16.toInt(), 0xFF3B2E22.toInt(), 0xFF362A20.toInt(), 0xFFFAF0E4.toInt(), 0xFFDEC9AF.toInt(), 0xFFA88D71.toInt(), 0xFFE8B86D.toInt(), 0xFF86C99A.toInt(), 0xFFF0A07E.toInt()),
-            ThemeState.WIND_DOWN to Tokens(0xFF100A0F.toInt(), 0xFF1F131C.toInt(), 0xFF35212F.toInt(), 0xFF2F1D2A.toInt(), 0xFFF6E9F0.toInt(), 0xFFD9BFCB.toInt(), 0xFFA37E8E.toInt(), 0xFFC98BA0.toInt(), 0xFF86C99A.toInt(), 0xFFF0A07E.toInt()),
+        dev.icarus.app.data.AppTheme.DUSK to mapOf(
+            ThemeState.FOCUS to Tokens(
+                0xFF0D1116.toInt(), 0xFF141A21.toInt(), 0xFF1C2530.toInt(), 0xFF283341.toInt(),
+                0xFF222B37.toInt(), 0xFFE8EEF5.toInt(), 0xFFC2CFDC.toInt(), 0xFF90A1B2.toInt(),
+                0xFF8FB6D9.toInt(), 0xFF4E7398.toInt(), 0xFF8FC7B0.toInt(), 0xFFD9A383.toInt()),
+            ThemeState.RECOVERY to Tokens(
+                0xFF0C1117.toInt(), 0xFF131B24.toInt(), 0xFF1B2530.toInt(), 0xFF273644.toInt(),
+                0xFF202C38.toInt(), 0xFFE5ECF4.toInt(), 0xFFBDCAD8.toInt(), 0xFF8A9DAE.toInt(),
+                0xFF9BB8CE.toInt(), 0xFF566F86.toInt(), 0xFF8FC7B0.toInt(), 0xFFD9A383.toInt()),
+            ThemeState.WIND_DOWN to Tokens(
+                0xFF090C11.toInt(), 0xFF111720.toInt(), 0xFF18202B.toInt(), 0xFF212C3A.toInt(),
+                0xFF1B2430.toInt(), 0xFFE2E8F0.toInt(), 0xFFB6C3D1.toInt(), 0xFF8496A8.toInt(),
+                0xFFA7A6C9.toInt(), 0xFF64638C.toInt(), 0xFF8FC7B0.toInt(), 0xFFD9A383.toInt()),
         ),
     )
 
-    fun tokens(app: AppTheme, state: ThemeState): Tokens =
-        TABLE.getValue(app).getValue(state)
+    fun tokens(app: dev.icarus.app.data.AppTheme, state: ThemeState): Tokens =
+        TABLE[app]?.get(state) ?: TABLE.getValue(dev.icarus.app.data.AppTheme.MOSS).getValue(ThemeState.FOCUS)
 
     fun resolveFrom(
-        app: AppTheme,
+        app: dev.icarus.app.data.AppTheme,
         mode: ThemeMode,
         moment: Moment,
         hasPlan: Boolean,
@@ -96,17 +123,11 @@ object IcarusTheme {
     fun contrastRatio(a: Int, b: Int): Double {
         val la = luminance(a)
         val lb = luminance(b)
-        val hi = maxOf(la, lb)
-        val lo = minOf(la, lb)
-        return (hi + 0.05) / (lo + 0.05)
+        return (maxOf(la, lb) + 0.05) / (minOf(la, lb) + 0.05)
     }
 
-    private fun luminance(color: Int): Double {
-        val r = channel(color shr 16)
-        val g = channel(color shr 8)
-        val b = channel(color)
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b
-    }
+    private fun luminance(color: Int): Double =
+        0.2126 * channel(color shr 16) + 0.7152 * channel(color shr 8) + 0.0722 * channel(color)
 
     private fun channel(value: Int): Double {
         val c = (value and 0xFF) / 255.0

@@ -154,7 +154,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
             setPadding(0, dp(16), 0, dp(8))
         })
         val themeRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("Icarus" to AppTheme.ICARUS, "Tide" to AppTheme.TIDE, "Ember" to AppTheme.EMBER)
+        listOf("Moss" to AppTheme.MOSS, "Clay" to AppTheme.CLAY, "Dusk" to AppTheme.DUSK)
             .forEach { (name, value) ->
                 themeRow.addView(action(name, store.appTheme() == value) {
                     store.setAppTheme(value)

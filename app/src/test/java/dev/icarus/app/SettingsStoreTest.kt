@@ -23,7 +23,7 @@ class SettingsStoreTest {
 
     @Test
     fun defaultsAreSafe() {
-        assertEquals(AppTheme.ICARUS, SettingsDefaults.theme)
+        assertEquals(AppTheme.MOSS, SettingsDefaults.theme)
         assertEquals(ThemeMode.AUTO, SettingsDefaults.mode)
     }
 }

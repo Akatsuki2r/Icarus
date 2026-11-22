@@ -5,12 +5,12 @@ import org.json.JSONObject
 
 enum class Classification { UNCLASSIFIED, DISTRACTION, PRODUCTIVE }
 
-enum class AppTheme { ICARUS, TIDE, EMBER }
+enum class AppTheme { MOSS, CLAY, DUSK }
 
 enum class ThemeMode { AUTO, FOCUS, RECOVERY, WIND_DOWN }
 
 object SettingsDefaults {
-    val theme = AppTheme.ICARUS
+    val theme = AppTheme.MOSS
     val mode = ThemeMode.AUTO
     const val chime = "system"
 }
