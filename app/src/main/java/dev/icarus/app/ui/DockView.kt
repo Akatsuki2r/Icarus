@@ -36,7 +36,7 @@ class DockView(context: Context, onSelect: (Destination) -> Unit) : LinearLayout
 
         val specs = listOf(
             Destination.TODAY to Pair(R.drawable.ic_nav_today, "Today"),
-            Destination.ROUTINE to Pair(R.drawable.ic_nav_routine, "Routine"),
+            Destination.PLAN to Pair(R.drawable.ic_nav_routine, "Plan"),
             Destination.HISTORY to Pair(R.drawable.ic_nav_history, "History"),
             Destination.SETTINGS to Pair(R.drawable.ic_nav_settings, "Settings"),
         )

@@ -9,7 +9,7 @@ class ShellNavigationTest {
     @Test
     fun `four destinations are fixed and ordered`() {
         assertEquals(
-            listOf("TODAY", "ROUTINE", "HISTORY", "SETTINGS"),
+            listOf("TODAY", "PLAN", "HISTORY", "SETTINGS"),
             Destination.entries.map { it.name },
         )
     }

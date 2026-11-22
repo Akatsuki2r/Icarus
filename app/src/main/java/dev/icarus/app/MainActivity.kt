@@ -40,7 +40,7 @@ import dev.icarus.engine.Timeline
 import dev.icarus.app.ui.Destination
 import dev.icarus.app.ui.DockView
 import dev.icarus.app.ui.HistoryView
-import dev.icarus.app.ui.RoutineHomeView
+import dev.icarus.app.ui.PlanView
 import dev.icarus.app.ui.SettingsView
 import java.time.LocalDate
 import java.time.LocalTime
@@ -63,7 +63,7 @@ class MainActivity : Activity() {
     private lateinit var shell: FrameLayout
     private lateinit var dock: DockView
     private lateinit var todayScreen: View
-    private lateinit var routineScreen: RoutineHomeView
+    private lateinit var planScreen: PlanView
     private lateinit var historyScreen: HistoryView
     private lateinit var settingsScreen: SettingsView
     private var destination: Destination = Destination.TODAY
@@ -133,7 +133,7 @@ class MainActivity : Activity() {
 
     private fun buildShell() {
         todayScreen = buildUi()
-        routineScreen = RoutineHomeView(this).apply { render() }
+        planScreen = PlanView(this).apply { render() }
         historyScreen = HistoryView(this).apply { render() }
         settingsScreen = SettingsView(this).apply { render() }
 
@@ -171,7 +171,7 @@ class MainActivity : Activity() {
     private fun show(next: Destination) {
         destination = next
         when (next) {
-            Destination.ROUTINE -> routineScreen.render()
+            Destination.PLAN -> planScreen.render()
             Destination.HISTORY -> historyScreen.render()
             Destination.SETTINGS -> settingsScreen.render()
             Destination.TODAY -> Unit
@@ -180,7 +180,7 @@ class MainActivity : Activity() {
         shell.addView(
             when (next) {
                 Destination.TODAY -> todayScreen
-                Destination.ROUTINE -> routineScreen
+                Destination.PLAN -> planScreen
                 Destination.HISTORY -> historyScreen
                 Destination.SETTINGS -> settingsScreen
             },
