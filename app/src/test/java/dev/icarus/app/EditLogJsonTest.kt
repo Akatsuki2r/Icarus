@@ -3,7 +3,6 @@ package dev.icarus.app
 import dev.icarus.app.data.EditLogJson
 import dev.icarus.engine.Block
 import dev.icarus.engine.Category
-import dev.icarus.engine.DayState
 import dev.icarus.engine.EditEntry
 import dev.icarus.engine.EditKind
 import dev.icarus.engine.EditLog
@@ -52,8 +51,16 @@ class EditLogJsonTest {
     }
 
     @Test
-    fun `day state is unaffected by the edit log`() {
-        val state = DayState.empty(java.time.LocalDate.of(2026, 11, 22))
-        assertTrue(state.skipped.isEmpty())
+    fun `an edit with no block snapshots survives a round trip`() {
+        val entry = EditEntry(
+            id = "json",
+            at = Instant.ofEpochSecond(5),
+            kind = EditKind.DELETE,
+            day = DayOfWeek.MONDAY,
+            before = null,
+            after = null,
+            note = "JSON edit",
+        )
+        assertEquals(listOf(entry), EditLogJson.fromJsonOrEmpty(EditLogJson.toJson(listOf(entry))))
     }
 }

@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import dev.icarus.app.Actions
 import dev.icarus.app.BlockEditSheet
 import dev.icarus.app.DayEditorActivity
 import dev.icarus.app.WeekEditorActivity
@@ -40,6 +41,7 @@ class PlanView(context: Context) : LinearLayout(context) {
     private val store = RoutineStore(context)
     private val settings = SettingsStore(context)
     private var selected: DayOfWeek = LocalDate.now().dayOfWeek
+    private var sheet: BlockEditSheet? = null
 
     fun render() {
         removeAllViews()
@@ -67,7 +69,7 @@ class PlanView(context: Context) : LinearLayout(context) {
             strip.addView(action(day.getDisplayName(TextStyle.SHORT, Locale.getDefault())) {
                 selected = day
                 render()
-            }, LayoutParams(0, dp(44), 1f).apply { rightMargin = dp(4) })
+            }, LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(4) })
         }
         body.addView(strip)
 
@@ -158,15 +160,23 @@ class PlanView(context: Context) : LinearLayout(context) {
             interrupt = Interrupt.NUDGE,
         )
         val activity = context as Activity
-        BlockEditSheet(
+        sheet?.dismiss()
+        val editor = BlockEditSheet(
             activity,
             draft,
             onSave = { candidate ->
-                if (candidate.title.isBlank()) return@BlockEditSheet
+                if (candidate.title.isBlank()) {
+                    sheet?.setError("Give the block a title.")
+                    return@BlockEditSheet
+                }
                 val edited = store.load().withBlock(selected, candidate)
                 val problems = edited.problems()
-                if (problems.isNotEmpty()) return@BlockEditSheet
+                if (problems.isNotEmpty()) {
+                    sheet?.setError(problems.first())
+                    return@BlockEditSheet
+                }
                 store.save(edited)
+                Actions.onTrack(context)
                 settings.recordEdit(
                     EditEntry(
                         id = java.util.UUID.randomUUID().toString(),
@@ -178,10 +188,13 @@ class PlanView(context: Context) : LinearLayout(context) {
                         note = "Added ${candidate.title}",
                     ),
                 )
+                sheet?.dismiss()
                 render()
             },
             onDelete = {},
-        ).show()
+        )
+        sheet = editor
+        editor.show()
     }
 
     private fun action(text: String, filled: Boolean = false, onClick: () -> Unit): TextView =

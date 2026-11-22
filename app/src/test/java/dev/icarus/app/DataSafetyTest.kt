@@ -6,6 +6,7 @@ import dev.icarus.engine.Category
 import dev.icarus.engine.DayState
 import dev.icarus.engine.Routine
 import dev.icarus.engine.Timeline
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,6 +23,21 @@ class DataSafetyTest {
         """.trimIndent()
         val error = runCatching { RoutineJson.fromJson(json) }.exceptionOrNull()
         assertTrue("expected the bad category to be rejected", error != null)
+    }
+
+    @Test
+    fun `old json without intervention fields uses defaults`() {
+        val old = JSONObject()
+            .put("id", "legacy")
+            .put("title", "Legacy")
+            .put("start", "09:00")
+            .put("end", "10:00")
+            .put("category", "SCHOOL")
+        val block = RoutineJson.blockFromJson(old)
+        assertEquals(Category.SCHOOL, block.category)
+        assertEquals(true, block.interventionEnabled)
+        assertEquals(0L, block.dwellLimitMinutes)
+        assertEquals(false, block.productiveContext)
     }
 
     @Test

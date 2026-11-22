@@ -288,7 +288,9 @@ class MainActivity : Activity() {
     // ----------------------------------------------------------------- render
 
     private fun render() {
-        if (IcarusTheme.apply(this)) onThemeChanged()
+        val generationBefore = IcarusTheme.generation
+        IcarusTheme.apply(this)
+        if (IcarusTheme.generation != generationBefore) onThemeChanged()
         val now = LocalTime.now()
         clock.text = now.format(clockFormat)
 

@@ -22,6 +22,7 @@ import dev.icarus.app.ui.IcarusColors
 import dev.icarus.engine.Routine
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -138,7 +139,13 @@ class WeekEditorActivity : Activity() {
             else day.getDisplayName(TextStyle.FULL, Locale.getDefault()),
             if (isToday) IcarusColors.ACCENT else IcarusColors.TEXT,
         ).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f) })
-        texts.addView(label("${blocks.size} blocks · $count", IcarusColors.MUTED).apply {
+        val hm = DateTimeFormatter.ofPattern("HH:mm")
+        val span = if (blocks.isEmpty()) {
+            "no blocks"
+        } else {
+            "${blocks.first().start.format(hm)} – ${blocks.last().end.format(hm)}"
+        }
+        texts.addView(label("$span  ·  ${blocks.size} blocks · $count", IcarusColors.MUTED).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setPadding(0, dp(2), 0, 0)
         })

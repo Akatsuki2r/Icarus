@@ -33,10 +33,12 @@ class IcarusThemeTest {
     }
 
     @Test
-    fun `unknown theme falls back to moss focus`() {
-        assertEquals(
-            IcarusTheme.tokens(AppTheme.MOSS, ThemeState.FOCUS),
-            IcarusTheme.tokens(AppTheme.MOSS, ThemeState.FOCUS),
-        )
+    fun `themes have distinct identities`() {
+        val moss = IcarusTheme.tokens(AppTheme.MOSS, ThemeState.FOCUS)
+        val clay = IcarusTheme.tokens(AppTheme.CLAY, ThemeState.FOCUS)
+        val dusk = IcarusTheme.tokens(AppTheme.DUSK, ThemeState.FOCUS)
+        org.junit.Assert.assertNotEquals(moss.bg, clay.bg)
+        org.junit.Assert.assertNotEquals(clay.bg, dusk.bg)
+        org.junit.Assert.assertNotEquals(moss.accent, dusk.accent)
     }
 }

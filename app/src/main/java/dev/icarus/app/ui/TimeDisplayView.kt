@@ -82,7 +82,12 @@ class TimeDisplayView(context: Context) : LinearLayout(context) {
 
     private fun adjust(isStart: Boolean, minutes: Int) {
         val current = if (isStart) start else end
-        val next = TimeEdit.shift(current, minutes) ?: return
+        val next = TimeEdit.shift(current, minutes)
+        if (next == null) {
+            error.text = "Cannot step past midnight"
+            error.visibility = View.VISIBLE
+            return
+        }
         val problem = if (isStart) TimeEdit.validate(next, end) else TimeEdit.validate(start, next)
         if (problem != null) {
             error.text = problem

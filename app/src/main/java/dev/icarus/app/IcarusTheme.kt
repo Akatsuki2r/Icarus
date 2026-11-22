@@ -28,6 +28,10 @@ object IcarusTheme {
 
     var overlayActive: Boolean = false
 
+    /** Incremented whenever the active tokens change, even if another view consumed the change. */
+    var generation: Int = 0
+        private set
+
     private val TABLE: Map<dev.icarus.app.data.AppTheme, Map<ThemeState, Tokens>> = mapOf(
         dev.icarus.app.data.AppTheme.MOSS to mapOf(
             ThemeState.FOCUS to Tokens(
@@ -116,7 +120,10 @@ object IcarusTheme {
     fun apply(context: Context): Boolean {
         val next = resolve(context)
         val changed = next != dev.icarus.app.ui.IcarusColors.current()
-        if (changed) dev.icarus.app.ui.IcarusColors.update(next)
+        if (changed) {
+            dev.icarus.app.ui.IcarusColors.update(next)
+            generation++
+        }
         return changed
     }
 
