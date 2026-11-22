@@ -63,7 +63,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
             android.content.pm.PackageManager.PERMISSION_GRANTED
         body.addView(TextView(context).apply {
             text = if (notificationsOn) "Notifications: allowed" else "Notifications: blocked — alerts are silent"
-            setTextColor(if (notificationsOn) IcarusColors.GOOD else Color.WARN)
+            setTextColor(if (notificationsOn) IcarusColors.GOOD else IcarusColors.WARN)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(4), 0, dp(6))
         })
@@ -77,7 +77,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
         val canAlarm = dev.icarus.app.Alarms.canScheduleExact(context)
         body.addView(TextView(context).apply {
             text = if (canAlarm) "Exact alarms: allowed" else "Exact alarms: off — wake-ups may be delayed"
-            setTextColor(if (canAlarm) IcarusColors.GOOD else Color.WARN)
+            setTextColor(if (canAlarm) IcarusColors.GOOD else IcarusColors.WARN)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(6), 0, dp(6))
         })
@@ -111,7 +111,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
         val granted = reader.hasAccess()
         body.addView(TextView(context).apply {
             text = AwarenessPolicy.messageForAccess(granted)
-            setTextColor(if (granted) IcarusColors.GOOD else Color.WARN)
+            setTextColor(if (granted) IcarusColors.GOOD else IcarusColors.WARN)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(16), 0, dp(10))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -125,7 +125,7 @@ class SettingsView(context: Context) : LinearLayout(context) {
         val canOverlay = android.provider.Settings.canDrawOverlays(context)
         body.addView(TextView(context).apply {
             text = if (canOverlay) "Full-screen interventions: on" else "Full-screen interventions: off — alerts fall back to the shade"
-            setTextColor(if (canOverlay) IcarusColors.GOOD else Color.WARN)
+            setTextColor(if (canOverlay) IcarusColors.GOOD else IcarusColors.WARN)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, dp(4), 0, dp(4))
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -281,10 +281,6 @@ class SettingsView(context: Context) : LinearLayout(context) {
             )
             setOnClickListener { onClick() }
         }
-
-    private object Color {
-        val WARN = android.graphics.Color.parseColor("#E58D6F")
-    }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 }

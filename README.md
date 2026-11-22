@@ -1,8 +1,9 @@
 # Icarus
 
-A personal timekeeper, not a planner.
+A personal timekeeper that now has a small planner built in.
 
-The plan is a weekly template. The phone's job is to keep you inside it: show
+The plan is a weekly template you edit in the **Plan** tab: pick a day, see its
+blocks with editable times, and add a block with "Plan something". The phone's
 the current block in the shade, tell you ten minutes before a transition, ask
 once if you're late, and — when you've lost an hour — offer a way to get the
 important part of the day back.
@@ -98,7 +99,9 @@ persistent notification will vanish after a while.
 
 ## Editing the routine
 
-Tap **Edit routine** in the app. It is plain JSON:
+The **Plan** tab is the normal way: select a day, tap a block to change its
+times and rules, or use "Plan something". The full week editor is one tap away
+there. For direct edits, the JSON view is still available:
 
 ```json
 {
@@ -187,7 +190,7 @@ RoutinesTest      default routine validity, JSON round trip, evening recovery
 DaySimulationTest a full week at one-minute resolution through the real path
 ```
 
-Run `./gradlew testDebugUnitTest` (34 tests, a couple of seconds). The
+Run `./gradlew testDebugUnitTest` (101 tests, a couple of seconds). The
 invariants to protect if you change anything are in `DaySimulationTest`:
 never two alerts for the same transition, never an alert outside its window,
 never an overlapping or anchor-breaking recovery plan.

@@ -49,23 +49,8 @@ class TimeDisplayView(context: Context) : LinearLayout(context) {
         orientation = VERTICAL
         setPadding(0, dp(10), 0, dp(6))
 
-        val row = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        row.addView(stepper("-") { adjust(true, -15) })
-        row.addView(startField, LayoutParams(dp(94), ViewGroup.LayoutParams.WRAP_CONTENT))
-        row.addView(stepper("+") { adjust(true, 15) })
-        row.addView(TextView(context).apply {
-            text = "→"
-            setTextColor(IcarusColors.MUTED)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-            setPadding(dp(8), 0, dp(8), 0)
-        }, LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        row.addView(stepper("-") { adjust(false, -15) })
-        row.addView(endField, LayoutParams(dp(72), ViewGroup.LayoutParams.WRAP_CONTENT))
-        row.addView(stepper("+") { adjust(false, 15) })
-        addView(row, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(timeRow("Start", startField, true, 28f))
+        addView(timeRow("End", endField, false, 20f))
 
         addView(duration, LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
         addView(error, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -116,6 +101,23 @@ class TimeDisplayView(context: Context) : LinearLayout(context) {
         if (isStart) start = parsed else end = parsed
         setTimes(start, end)
         onTimesChanged?.invoke(start, end)
+    }
+
+    private fun timeRow(label: String, field: EditText, isStart: Boolean, size: Float): LinearLayout {
+        field.setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+        return LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+            addView(TextView(context).apply {
+                text = label
+                setTextColor(IcarusColors.MUTED)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            }, LayoutParams(dp(52), ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(stepper("-") { adjust(isStart, -15) })
+            addView(field, LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(stepper("+") { adjust(isStart, 15) })
+        }
     }
 
     private fun timeField(size: Float): EditText = EditText(context).apply {

@@ -128,7 +128,7 @@ class BlockEditSheet(
 
         errorText = TextView(activity).apply {
             visibility = View.GONE
-            setTextColor(Color.parseColor("#E58D6F"))
+            setTextColor(IcarusColors.WARN)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             setPadding(0, dp(8), 0, 0)
         }

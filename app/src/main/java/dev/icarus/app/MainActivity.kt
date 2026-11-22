@@ -449,7 +449,7 @@ class MainActivity : Activity() {
 
         dayList.removeAllViews()
         if (timeline.blocks.isEmpty()) {
-            dayList.addView(note("no blocks scheduled — tap Edit routine"))
+            dayList.addView(note("nothing scheduled — open Plan to add a block"))
             return
         }
         timeline.blocks.forEach { dayList.addView(row(it, now)) }
@@ -585,9 +585,9 @@ class MainActivity : Activity() {
         }
         skipButton = button("Skip now") { skipCurrent() }
         doneButton = button("Mark done") { markDone() }
-        row2.addView(skipButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        row2.addView(skipButton, LinearLayout.LayoutParams(0, dp(48), 1f))
         row2.addView(spacer(dp(8)))
-        row2.addView(doneButton, LinearLayout.LayoutParams(0, dp(44), 1f))
+        row2.addView(doneButton, LinearLayout.LayoutParams(0, dp(48), 1f))
         content.addView(row2)
 
         val todayHeader = LinearLayout(this).apply {
@@ -669,15 +669,13 @@ class MainActivity : Activity() {
             setPadding(0, dp(8), 0, dp(8))
         }
         footer.addView(
-            button("Edit routine") {
-                startActivity(Intent(this@MainActivity, RoutineEditorActivity::class.java))
-            },
-            LinearLayout.LayoutParams(0, dp(44), 1f),
+            button("Plan") { show(Destination.PLAN) },
+            LinearLayout.LayoutParams(0, dp(48), 1f),
         )
         footer.addView(spacer(dp(8)))
         footer.addView(
             button("Battery") { batterySettings() },
-            LinearLayout.LayoutParams(0, dp(44), 1f),
+            LinearLayout.LayoutParams(0, dp(48), 1f),
         )
         content.addView(footer)
 

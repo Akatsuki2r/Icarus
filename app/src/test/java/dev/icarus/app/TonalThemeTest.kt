@@ -56,6 +56,23 @@ class TonalThemeTest {
     }
 
     @Test
+    fun `secondary text keeps contrast on its own surface`() {
+        AppTheme.entries.forEach { app ->
+            ThemeState.entries.forEach { state ->
+                val t = IcarusTheme.tokens(app, state)
+                assertTrue(
+                    "$app/$state textDim",
+                    IcarusTheme.contrastRatio(t.textDim, t.surface) >= 4.5,
+                )
+                assertTrue(
+                    "$app/$state muted",
+                    IcarusTheme.contrastRatio(t.muted, t.bg) >= 4.5,
+                )
+            }
+        }
+    }
+
+    @Test
     fun `contrast floor holds for all nine rows`() {
         AppTheme.entries.forEach { app ->
             ThemeState.entries.forEach { state ->
