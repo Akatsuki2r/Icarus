@@ -50,6 +50,31 @@ class HistoryView(context: Context) : LinearLayout(context) {
             summaries.forEach { rows.addView(row(it)) }
         }
 
+        rows.addView(TextView(context).apply {
+            text = "Changes"
+            setTextColor(IcarusColors.TEXT)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setPadding(0, dp(18), 0, dp(8))
+        })
+        val edits = dev.icarus.app.data.SettingsStore(context).editLog().take(8)
+        if (edits.isEmpty()) {
+            rows.addView(TextView(context).apply {
+                text = "No routine edits recorded yet."
+                setTextColor(IcarusColors.MUTED)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                setPadding(dp(14), dp(8), dp(14), dp(12))
+            })
+        } else {
+            edits.forEach { edit ->
+                rows.addView(TextView(context).apply {
+                    text = "${edit.day} · ${edit.note}"
+                    setTextColor(IcarusColors.TEXT_DIM)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                    setPadding(dp(14), dp(6), dp(14), dp(6))
+                })
+            }
+        }
+
         addView(ScrollView(context).apply { addView(rows) })
     }
 

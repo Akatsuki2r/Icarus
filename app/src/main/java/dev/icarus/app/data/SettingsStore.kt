@@ -1,6 +1,8 @@
 package dev.icarus.app.data
 
 import android.content.Context
+import dev.icarus.engine.EditEntry
+import dev.icarus.engine.EditLog
 import org.json.JSONObject
 
 enum class Classification { UNCLASSIFIED, DISTRACTION, PRODUCTIVE }
@@ -86,7 +88,14 @@ class SettingsStore(private val context: Context) {
         get() = prefs.getLong(KEY_LAST_TICK, 0L)
         set(value) { prefs.edit().putLong(KEY_LAST_TICK, value).apply() }
 
+    fun editLog(): List<EditEntry> = EditLogJson.fromJsonOrEmpty(prefs.getString(KEY_EDIT_LOG, null))
+
+    fun recordEdit(entry: EditEntry) {
+        prefs.edit().putString(KEY_EDIT_LOG, EditLogJson.toJson(EditLog.add(editLog(), entry))).apply()
+    }
+
     private companion object {
+        const val KEY_EDIT_LOG = "edit_log"
         const val KEY_ASKED = "asked"
         const val KEY_INTERVENTIONS = "interventions_enabled"
         const val KEY_LAST_TICK = "last_tick"

@@ -140,6 +140,17 @@ class RoutineEditorActivity : Activity() {
             toast(error)
             return
         }
+        dev.icarus.app.data.SettingsStore(this).recordEdit(
+            dev.icarus.engine.EditEntry(
+                id = java.util.UUID.randomUUID().toString(),
+                at = java.time.Instant.now(),
+                kind = dev.icarus.engine.EditKind.EDIT,
+                day = java.time.LocalDate.now().dayOfWeek,
+                before = null,
+                after = null,
+                note = "Routine edited as JSON",
+            ),
+        )
         Actions.onTrack(this) // an edited template invalidates yesterday's recovery plan
         TimekeeperService.start(this)
         toast("Saved.")

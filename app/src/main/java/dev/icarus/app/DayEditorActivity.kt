@@ -20,6 +20,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import dev.icarus.app.data.RoutineStore
 import dev.icarus.app.ui.IcarusColors
+import dev.icarus.app.data.SettingsStore
 import dev.icarus.engine.Block
 import dev.icarus.engine.Category
 import dev.icarus.engine.Interrupt
@@ -251,6 +252,7 @@ class DayEditorActivity : Activity() {
         }
         store.save(edited)
         Actions.onTrack(this)
+        recordEdit(original, unique)
         sheet?.dismiss()
         render()
     }
@@ -262,11 +264,38 @@ class DayEditorActivity : Activity() {
             .setPositiveButton("Delete") { _, _ ->
                 store.save(store.load().removeBlock(day, block.id))
                 Actions.onTrack(this)
+                recordEdit(block, null)
                 sheet?.dismiss()
                 render()
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun recordEdit(before: Block, after: Block?) {
+        val kind = when {
+            before.id.startsWith("new-") && after != null -> dev.icarus.engine.EditKind.CREATE
+            after == null -> dev.icarus.engine.EditKind.DELETE
+            before.start != after?.start || before.end != after.end -> dev.icarus.engine.EditKind.MOVE
+            else -> dev.icarus.engine.EditKind.EDIT
+        }
+        val note = when (kind) {
+            dev.icarus.engine.EditKind.CREATE -> "Added ${after?.title}"
+            dev.icarus.engine.EditKind.DELETE -> "Deleted ${before.title}"
+            dev.icarus.engine.EditKind.MOVE -> "Retimed ${before.title}"
+            dev.icarus.engine.EditKind.EDIT -> "Edited ${before.title}"
+        }
+        SettingsStore(this).recordEdit(
+            dev.icarus.engine.EditEntry(
+                id = java.util.UUID.randomUUID().toString(),
+                at = java.time.Instant.now(),
+                kind = kind,
+                day = day,
+                before = before,
+                after = after,
+                note = note,
+            ),
+        )
     }
 
     @SuppressLint("GestureBackNavigation")
